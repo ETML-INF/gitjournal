@@ -55,7 +55,7 @@ async function fetchAllCommits({ owner, repo, branch, since }) {
     if (since) params.set("since", since);
     const url = `${GH}/repos/${owner}/${repo}/commits?${params}`;
     const r = await fetch(url, { headers: ghHeaders() });
-    if (!r.ok) throw new Error(`GitHub commits error ${r.status}`);
+    if (!r.ok) return [];
     const batch = await r.json();
     all = all.concat(batch);
     keep = batch.length === perPage;
@@ -183,20 +183,21 @@ app.get(["/", "/jdt"], async (req, res) => {
     const defaultRepoUrl = process.env.REPO_URL || "";
     const { owner, repo } = parseRepoUrl(defaultRepoUrl);
 
-    const date = new Date(process.env.JOURNAL_START_DATE);
-
-    const since = new Intl.DateTimeFormat("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }).format(date);
+    const since = process.env.JOURNAL_START_DATE
+      ? new Intl.DateTimeFormat("fr-FR", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }).format(new Date(process.env.JOURNAL_START_DATE))
+      : null;
+    const me = process.env.ME;
 
     const branch = process.env.BRANCH || "main";
 
     // ...
-    const raw = await fetchAllCommits({ owner, repo, branch, date });
+    const raw = await fetchAllCommits({ owner, repo, branch, since });
     const entries = await raw.map(groom).filter((c) => c.duration > 0);
-    const myEntries = await entries.filter((c) => c.author == process.env.ME);
+    const myEntries = await entries.filter((c) => c.author == me);
 
     // lire les exceptions depuis le JSON
     const exc = await readExceptions();
@@ -216,6 +217,7 @@ app.get(["/", "/jdt"], async (req, res) => {
     // grouper + totaux
     const groups = groupByDay(allEntriesReady);
     const totals = totalDuration(allEntriesReady);
+    const projectName = process.env.PROJECT_NAME ?? repo;
 
     return res.render("index", {
       defaultRepoUrl,
@@ -224,7 +226,9 @@ app.get(["/", "/jdt"], async (req, res) => {
       selectedBranch: branch,
       since,
       groups,
-      totals
+      totals,
+      projectName,
+      me
     });
   } catch (e) {
     console.error(e);

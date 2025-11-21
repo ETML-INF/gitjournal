@@ -1,12 +1,13 @@
 <main>
   <% if (owner && repo) { %>
   <header>
-    <h1>Journal de travail <%= owner %>/<%= repo %></h1>
+    <h1>Journal de travail de <%= me %> dans <%= projectName %></h1>
   </header>
-  <p class="muted">
-    Branche: <strong><%= selectedBranch %></strong> • Depuis:
-    <strong><%= since || '—' %></strong>
-  </p>
+  <% if(selectedBranch != "main") { %>
+  <p class="muted">Branche: <strong><%= selectedBranch %></strong></p>
+  <% } %> <% if (since) { %>
+  <p class="muted">Depuis: <strong><%= since %></strong></p>
+  <% } %>
 
   <p><strong>Total:</strong> <%= totals.h %>h <%= totals.m %>m (<%= totals.minutes %> min)</p>
   <div id="divAddButton" class="topButton no-print">+</div>

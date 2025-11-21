@@ -7,7 +7,10 @@
   data-author="<%= c.author ?? '?'%>"
   data-status="<%= c.status ?? '0'%>"
 >
-  <td><%= new Date(c.date).toLocaleString('fr-CH') %></td>
+  <td>
+    <%= new Date(c.date).toLocaleString('fr-CH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit',
+    minute: '2-digit' }) %>
+  </td>
   <td><%= c.name %></td>
   <td style="white-space: pre-wrap"><%= c.description || '' %></td>
   <td><%= Math.floor((c.duration||0)/60) %>h <%= (c.duration||0)%60 %>m</td>
