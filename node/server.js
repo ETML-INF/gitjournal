@@ -279,7 +279,7 @@ async function addNewCommitlessEntry(ex) {
     date: new Date(ex.date).toISOString(),
     duration: Number(ex.duration) || 0,
     status: ex.status || "",
-    author: process.env.USER
+    author: process.env.ME
   };
   list.push(newentry);
   await writeExceptions(list);
