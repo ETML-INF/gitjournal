@@ -1,0 +1,31 @@
+<tr
+  data-sha="<%= c.sha ?? '-'%>"
+  data-url="<%= c.url ?? '-'%>"
+  data-exceptionid="<%= c.id ?? '-'%>"
+  data-duration="<%= c.duration ?? '0'%>"
+  data-date="<%= c.date ?? '0'%>"
+  data-author="<%= c.author ?? '?'%>"
+  data-status="<%= c.status ?? '0'%>"
+>
+  <td>
+    <%= new Date(c.date).toLocaleString('fr-CH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit',
+    minute: '2-digit' }) %>
+  </td>
+  <td><%= c.name %></td>
+  <td style="white-space: pre-wrap"><%= c.description || '' %></td>
+  <td><%= Math.floor((c.duration||0)/60) %>h <%= (c.duration||0)%60 %>m</td>
+  <td><span class="badge"><%= c.status || '' %></span></td>
+  <td><%= c.author %></td>
+  <% if (c.sha) { %>
+
+  <td
+    style="border: none"
+    class="<%= c.patch ? 'patchedcommit' : '' %> no-print"
+    title="<%= c.patch ? 'Cette entrée a été éditée localement, elle est différente de ce qui se trouve sur GitHub' : '' %>"
+  >
+    <a href="<%= c.url %>" target="_blank" rel="noopener noreferrer" style="text-decoration: none"
+      ><%- include('_githublogo') %>
+    </a>
+  </td>
+  <% } %>
+</tr>

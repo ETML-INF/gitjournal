@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Préférences - GitJournal</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        margin-top: 0;
+        color: #333;
+        font-size: 24px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #555;
+      }
+      input[type="password"],
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      input:focus {
+        outline: none;
+        border-color: #007aff;
+      }
+      .buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 25px;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      button[type="submit"] {
+        background: #007aff;
+        color: white;
+      }
+      button[type="submit"]:hover {
+        background: #0051d5;
+      }
+      button[type="button"] {
+        background: #e0e0e0;
+        color: #333;
+      }
+      button[type="button"]:hover {
+        background: #d0d0d0;
+      }
+      .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+      .help-link {
+        color: #007aff;
+        text-decoration: none;
+      }
+      .help-link:hover {
+        text-decoration: underline;
+      }
+      .toggle-visibility {
+        margin-top: 5px;
+        font-size: 12px;
+        color: #007aff;
+        cursor: pointer;
+        user-select: none;
+      }
+      .toggle-visibility:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Préférences</h1>
+      <form id="settingsForm">
+        <div class="form-group">
+          <label for="tokenInput">GitHub Personal Access Token</label>
+          <input type="password" id="tokenInput" placeholder="ghp_..." />
+          <div class="toggle-visibility" onclick="toggleTokenVisibility()">👁️ Afficher/masquer</div>
+          <p class="help-text">
+            Ce token est utilisé pour accéder à l'API GitHub.
+            <a href="#" class="help-link" onclick="openTokenHelp(); return false;">Comment créer un token ?</a>
+          </p>
+        </div>
+
+        <div class="buttons">
+          <button type="button" onclick="window.close()">Annuler</button>
+          <button type="submit">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      // Charger le token actuel
+      window.electronAPI.getGithubToken().then(token => {
+        if (token) {
+          document.getElementById('tokenInput').value = token;
+        }
+      });
+
+      // Soumettre le formulaire
+      document.getElementById('settingsForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const token = document.getElementById('tokenInput').value.trim();
+
+        if (token) {
+          await window.electronAPI.setGithubToken(token);
+          window.close();
+        } else {
+          alert('Veuillez entrer un token valide');
+        }
+      };
+
+      // Toggle visibilité du token
+      function toggleTokenVisibility() {
+        const input = document.getElementById('tokenInput');
+        input.type = input.type === 'password' ? 'text' : 'password';
+      }
+
+      // Ouvrir l'aide pour créer un token
+      function openTokenHelp() {
+        window.electronAPI.openExternal('https://github.com/settings/tokens/new?description=GitJournal&scopes=repo');
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,122 @@
+<main>
+  <% if (owner && repo) { %>
+  <header>
+    <h1>Journal de travail de <%= me %> dans <%= projectName %></h1>
+  </header>
+  <% if(selectedBranch != "main") { %>
+  <p class="muted">Branche: <strong><%= selectedBranch %></strong></p>
+  <% } %> <% if (since) { %>
+  <p class="muted">Depuis: <strong><%= since %></strong></p>
+  <% } %>
+
+  <p><strong>Total:</strong> <%= totals.h %>h <%= totals.m %>m (<%= totals.minutes %> min)</p>
+  <div id="divAddButton" class="topButton no-print">+</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Titre</th>
+        <th>Description</th>
+        <th class="muted">Durée</th>
+        <th class="muted">Statut</th>
+        <th class="muted">Auteur</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <% groups.forEach(g => { %>
+      <!-- lignes du jour -->
+      <% g.commits.forEach(c => { %> <%- include('_commitRow', { c }) %> <% }) %>
+      <!-- sous-total du jour -->
+      <tr style="background: #fafafa; font-weight: bold">
+        <td colspan="3" style="text-align: right"><%= g.label %></td>
+        <td><%= g.total.h %>h <%= g.total.m %>m</td>
+        <td colspan="2"></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <%- include('_editEntry') %> <% } else { %>
+  <p>Renseignez une URL GitHub pour commencer.</p>
+  <% } %>
+</main>
+<script>
+  // Input form
+  const openBtn = document.getElementById("divAddButton");
+  const closeBtn = document.getElementById("closeBtn");
+  const overlay = document.getElementById("overlay");
+  const dateInput = document.querySelector('input[name="date"]');
+
+  openBtn.onclick = () => {
+    heaInputForm.innerText = "Ajout d'une entrée";
+    txtName.value = "";
+    txtDescription.value = "";
+    numDuration.value = null;
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    datDate.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
+      d.getMinutes()
+    )}`;
+    overlay.classList.add("active");
+    hidSHA.value = "-";
+    exceptionId.value = "-";
+    url.value = "-";
+
+    dpdStatus.disabled = false;
+    overlay.classList.add("active");
+  };
+  closeBtn.onclick = () => overlay.classList.remove("active");
+  overlay.onclick = (e) => {
+    if (e.target === overlay) overlay.classList.remove("active");
+  };
+
+  saveBtn.onclick = () => {
+    const fd = new FormData(dataForm);
+    const sha = fd.get("sha");
+    if (sha) {
+      let patch = { sha: sha };
+      const patchdescription = fd.get("description");
+      const patchdate = fd.get("date");
+      const patchduration = fd.get("duration");
+      if (patchdescription) patch.description = patchdescription;
+      if (patchdate) patch.date = patchdate;
+      if (patchduration) patch.duration = patchduration;
+      exceptions.push(patch);
+    } else {
+      exceptions.push({
+        patch: true,
+        name: fd.get("name"),
+        description: fd.get("description"),
+        date: new Date(fd.get("date")).toISOString(),
+        duration: Number(fd.get("duration")),
+        status: fd.get("status"),
+        author: repoOwner
+      });
+    }
+    saveData(exceptions);
+    overlay.classList.remove("active");
+  };
+
+  document.querySelectorAll("tr").forEach((tr) => {
+    tr.addEventListener("contextmenu", (e) => {
+      const row = e.target.parentNode;
+      e.preventDefault();
+      heaInputForm.innerText = "Modification d'une entrée";
+      const d = new Date(row.dataset.date);
+      const pad = (n) => String(n).padStart(2, "0");
+      datDate.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
+        d.getMinutes()
+      )}`;
+      // Load form fields with entry's current values
+      txtName.value = row.childNodes[3].innerText;
+      txtDescription.value = row.childNodes[5].innerText;
+      numDuration.value = parseInt(row.dataset.duration);
+      overlay.classList.add("active");
+      hidSHA.value = row.dataset.sha;
+      exceptionId.value = row.dataset.exceptionid;
+      url.value = row.dataset.url;
+      dpdStatus.value = row.dataset.status;
+      author.value = row.dataset.author;
+    });
+  });
+</script>

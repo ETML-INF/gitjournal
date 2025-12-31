@@ -1,0 +1,16 @@
+<main style="text-align: center; padding: 4rem;">
+  <h1>Bienvenue dans GitJournal</h1>
+  <p><%= message %></p>
+  <p style="margin-top: 2rem;">
+    <button onclick="window.electronAPI?.newProject()" style="padding: 0.8rem 1.5rem; margin: 0.5rem; font-size: 1rem; cursor: pointer;">
+      Nouveau projet
+    </button>
+    <button onclick="window.electronAPI?.openProject()" style="padding: 0.8rem 1.5rem; margin: 0.5rem; font-size: 1rem; cursor: pointer;">
+      Ouvrir un projet
+    </button>
+  </p>
+  <p style="margin-top: 3rem; color: #666; font-size: 0.9rem;">
+    GitJournal génère votre journal de travail à partir de vos commits Git.<br>
+    Créez ou ouvrez un fichier .gitj pour commencer.
+  </p>
+</main>

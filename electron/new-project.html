@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Nouveau projet - GitJournal</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        margin-top: 0;
+        color: #333;
+        font-size: 24px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #555;
+      }
+      input[type="text"],
+      input[type="datetime-local"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      input:focus {
+        outline: none;
+        border-color: #007aff;
+      }
+      .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+      .buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 25px;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      button[type="submit"] {
+        background: #007aff;
+        color: white;
+      }
+      button[type="submit"]:hover {
+        background: #0051d5;
+      }
+      button[type="submit"]:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      button[type="button"] {
+        background: #e0e0e0;
+        color: #333;
+      }
+      button[type="button"]:hover {
+        background: #d0d0d0;
+      }
+      .required {
+        color: #ff3b30;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Configuration du nouveau projet</h1>
+      <form id="projectForm">
+        <div class="form-group">
+          <label for="projectName">
+            Nom du projet <span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="projectName"
+            placeholder="Mon Projet"
+            required
+          />
+          <p class="help-text">Le nom affiché dans le journal</p>
+        </div>
+
+        <div class="form-group">
+          <label for="repoUrl">
+            URL du repository GitHub <span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="repoUrl"
+            placeholder="https://github.com/utilisateur/repository"
+            required
+          />
+          <p class="help-text">L'URL complète de votre repository GitHub</p>
+        </div>
+
+        <div class="form-group">
+          <label for="me">
+            Votre nom d'utilisateur GitHub <span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="me"
+            placeholder="username"
+            required
+          />
+          <p class="help-text">Pour filtrer uniquement vos commits</p>
+        </div>
+
+        <div class="form-group">
+          <label for="branch">
+            Branche
+          </label>
+          <input
+            type="text"
+            id="branch"
+            value="main"
+          />
+          <p class="help-text">La branche Git à analyser (par défaut: main)</p>
+        </div>
+
+        <div class="form-group">
+          <label for="journalStartDate">
+            Date de début (optionnel)
+          </label>
+          <input
+            type="datetime-local"
+            id="journalStartDate"
+          />
+          <p class="help-text">Récupérer uniquement les commits depuis cette date</p>
+        </div>
+
+        <div class="buttons">
+          <button type="button" onclick="window.close()">Annuler</button>
+          <button type="submit" id="submitBtn">Créer le projet</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      const form = document.getElementById('projectForm');
+      const submitBtn = document.getElementById('submitBtn');
+
+      // Vérifier que l'API Electron est disponible
+      if (!window.electronAPI) {
+        console.error('electronAPI non disponible!');
+        alert('Erreur: L\'API Electron n\'est pas disponible. Veuillez redémarrer l\'application.');
+      }
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Création...';
+
+        try {
+          const projectData = {
+            projectName: document.getElementById('projectName').value.trim(),
+            repoUrl: document.getElementById('repoUrl').value.trim(),
+            me: document.getElementById('me').value.trim(),
+            branch: document.getElementById('branch').value.trim() || 'main',
+            journalStartDate: document.getElementById('journalStartDate').value || null
+          };
+
+          // Valider les champs requis
+          if (!projectData.projectName || !projectData.repoUrl || !projectData.me) {
+            alert('Veuillez remplir tous les champs obligatoires');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Créer le projet';
+            return;
+          }
+
+          // Convertir la date locale en ISO si fournie
+          if (projectData.journalStartDate) {
+            projectData.journalStartDate = new Date(projectData.journalStartDate).toISOString();
+          }
+
+          // Envoyer les données au main process
+          const result = await window.electronAPI.createProjectWithConfig(projectData);
+
+          if (result) {
+            window.close();
+          } else {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Créer le projet';
+          }
+        } catch (error) {
+          console.error('Erreur lors de la création:', error);
+          alert('Erreur lors de la création du projet: ' + error.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Créer le projet';
+        }
+      };
+    </script>
+  </body>
+</html>

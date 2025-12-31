@@ -1,0 +1,38 @@
+<main style="text-align: center; padding: 4rem;">
+  <h1 style="color: #d32f2f;">⚠️ Erreur</h1>
+  <div style="max-width: 600px; margin: 2rem auto; padding: 1.5rem; background: #ffebee; border-radius: 8px; border-left: 4px solid #d32f2f;">
+    <p style="font-size: 1.1rem; color: #333; margin: 0;"><%= errorMessage %></p>
+  </div>
+
+  <% if (errorType === 'github_token') { %>
+    <div style="margin-top: 2rem;">
+      <p>Pour corriger ce problème :</p>
+      <ol style="text-align: left; max-width: 500px; margin: 1rem auto;">
+        <li>Allez dans <strong>Préférences</strong> (menu GitJournal > Préférences ou Fichier > Préférences)</li>
+        <li>Vérifiez que votre token GitHub est correct</li>
+        <li>Si nécessaire, <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">créez un nouveau token</a> avec les permissions <code>repo</code></li>
+        <li>Rechargez cette page (Cmd+R / Ctrl+R)</li>
+      </ol>
+    </div>
+  <% } else if (errorType === 'github_repo') { %>
+    <div style="margin-top: 2rem;">
+      <p>Pour corriger ce problème :</p>
+      <ol style="text-align: left; max-width: 500px; margin: 1rem auto;">
+        <li>Vérifiez que l'URL du repository est correcte : <code><%= repoUrl %></code></li>
+        <li>Assurez-vous que vous avez accès à ce repository (s'il est privé)</li>
+        <li>Éditez le fichier .gitj pour corriger l'URL si nécessaire</li>
+        <li>Rechargez cette page (Cmd+R / Ctrl+R)</li>
+      </ol>
+    </div>
+  <% } else { %>
+    <div style="margin-top: 2rem;">
+      <p>Rechargez la page après avoir corrigé le problème.</p>
+    </div>
+  <% } %>
+
+  <div style="margin-top: 3rem;">
+    <button onclick="location.reload()" style="padding: 12px 24px; font-size: 1rem; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      🔄 Recharger la page
+    </button>
+  </div>
+</main>
