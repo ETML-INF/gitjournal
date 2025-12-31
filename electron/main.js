@@ -330,6 +330,7 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    autoHideMenuBar: false,  // Toujours afficher le menu sur Windows/Linux
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -463,13 +464,13 @@ function createApplicationMenu() {
       ]
     },
 
-    // Menu Développement
-    {
+    // Menu Développement (uniquement en mode développement)
+    ...(process.env.NODE_ENV === 'development' ? [{
       label: 'Développement',
       submenu: [
         { role: 'toggleDevTools', label: 'Outils de développement' }
       ]
-    }
+    }] : [])
   ];
 
   const menu = Menu.buildFromTemplate(menuTemplate);
