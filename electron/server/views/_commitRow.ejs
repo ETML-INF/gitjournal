@@ -13,7 +13,7 @@
   </td>
   <td><%= c.name %></td>
   <td style="white-space: pre-wrap"><%= c.description || '' %></td>
-  <td><%= Math.floor((c.duration||0)/60) %>h <%= (c.duration||0)%60 %>m</td>
+  <td style="width: 70px"><%= Math.floor((c.duration||0)/60) %>h <%= (c.duration||0)%60 %>m</td>
   <td><span class="badge"><%= c.status || '' %></span></td>
   <td><%= c.author %></td>
   <% if (c.sha) { %>

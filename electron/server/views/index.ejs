@@ -9,7 +9,6 @@
   <p class="muted">Depuis: <strong><%= since %></strong></p>
   <% } %>
 
-  <p><strong>Total:</strong> <%= totals.h %>h <%= totals.m %>m (<%= totals.minutes %> min)</p>
   <div id="divAddButton" class="topButton no-print">+</div>
   <table>
     <thead>
@@ -30,10 +29,13 @@
       <!-- sous-total du jour -->
       <tr style="background: #fafafa; font-weight: bold">
         <td colspan="3" style="text-align: right"><%= g.label %></td>
-        <td><%= g.total.h %>h <%= g.total.m %>m</td>
-        <td colspan="2"></td>
+        <td colspan="3"><%= g.total.h %>h <%= g.total.m %>m</td>
       </tr>
       <% }) %>
+      <tr style="background: #ccc; font-weight: bold">
+        <td colspan="3" style="text-align: right">Total du projet</td>
+        <td colspan="3"><%= totals.h %>h <%= totals.m %>m</td>
+      </tr>
     </tbody>
   </table>
   <%- include('_editEntry') %> <% } else { %>
