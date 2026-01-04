@@ -101,7 +101,14 @@
 
   document.querySelectorAll("tr").forEach((tr) => {
     tr.addEventListener("click", (e) => {
-      const row = e.target.parentNode;
+      // Don't interfere with link clicks (e.g., GitHub icon)
+      if (e.target.tagName === 'A' || e.target.closest('a')) {
+        return;
+      }
+
+      const row = e.currentTarget;
+      if (!row.dataset.date) return; // Ignore total rows
+
       e.preventDefault();
       heaInputForm.innerText = "Modification d'une entrée";
       const d = new Date(row.dataset.date);
