@@ -1,5 +1,4 @@
 <main>
-  <% if (owner && repo) { %>
   <div
     id="divHelpButton"
     class="topButton no-print"
@@ -7,13 +6,17 @@
   >
     ?
   </div>
-  <header>
+  <header class="print-only">
+    <% if (owner && repo) { %>
     <h1>Journal de travail de <%= me %> dans <%= projectName %></h1>
+    <% } else { %>
+    <h1>Journal de travail de <%= me %> - <%= projectName %></h1>
+    <% } %>
   </header>
-  <% if(selectedBranch != "main") { %>
-  <p class="muted">Branche: <strong><%= selectedBranch %></strong></p>
+  <% if (owner && repo && selectedBranch != "main") { %>
+  <p class="muted print-only">Branche: <strong><%= selectedBranch %></strong></p>
   <% } %> <% if (since) { %>
-  <p class="muted">Depuis: <strong><%= since %></strong></p>
+  <p class="muted print-only">Depuis: <strong><%= since %></strong></p>
   <% } %>
 
   <div id="divAddButton" class="topButton no-print">+</div>
@@ -45,9 +48,7 @@
       </tr>
     </tbody>
   </table>
-  <%- include('_editEntry') %> <%- include('_helpModal') %> <% } else { %>
-  <p>Renseignez une URL GitHub pour commencer.</p>
-  <% } %>
+  <%- include('_editEntry') %> <%- include('_helpModal') %>
 </main>
 <script>
   // Input form

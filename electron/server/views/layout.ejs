@@ -109,10 +109,19 @@
         margin-left: 10px;
       }
 
+      /* Classe pour éléments visibles uniquement dans les PDF */
+      .print-only {
+        display: none;
+      }
+
       @media print {
         .no-print,
         .no-print * {
           display: none !important;
+        }
+
+        .print-only {
+          display: block !important;
         }
 
         /* Optimisations PDF */
