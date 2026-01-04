@@ -196,13 +196,6 @@ app.get(["/", "/jdt"], async (req, res) => {
     const { repoUrl, projectName, branch, me, journalStartDate } = currentProject;
     const { owner, repo } = parseRepoUrl(repoUrl);
 
-    // Vérifier que le projet a les infos minimales
-    if (!owner || !repo) {
-      return res.render('no-project', {
-        message: 'Le projet ne contient pas d\'URL de repository valide. Veuillez configurer votre projet.'
-      });
-    }
-
     const since = journalStartDate
       ? new Intl.DateTimeFormat("fr-FR", {
           day: "2-digit",
@@ -211,10 +204,14 @@ app.get(["/", "/jdt"], async (req, res) => {
         }).format(new Date(journalStartDate))
       : null;
 
-    // Fetch des commits
-    const raw = await fetchAllCommits({ owner, repo, branch, since: journalStartDate });
-    const entries = raw.map(groom).filter((c) => c.duration > 0);
-    const myEntries = entries.filter((c) => c.author == me);
+    let myEntries = [];
+
+    // Fetch des commits seulement si un repo est configuré
+    if (owner && repo) {
+      const raw = await fetchAllCommits({ owner, repo, branch, since: journalStartDate });
+      const entries = raw.map(groom).filter((c) => c.duration > 0);
+      myEntries = entries.filter((c) => c.author == me);
+    }
 
     // Utiliser les exceptions du projet au lieu de lire depuis JSON
     const exc = currentProject.exceptions || [];
