@@ -15,7 +15,7 @@
     <thead>
       <tr>
         <th>Date</th>
-        <th>Titre</th>
+        <th>Tâche/Commit</th>
         <th>Description</th>
         <th class="muted">Durée</th>
         <th class="muted">Statut</th>
@@ -98,7 +98,7 @@
   };
 
   document.querySelectorAll("tr").forEach((tr) => {
-    tr.addEventListener("contextmenu", (e) => {
+    tr.addEventListener("click", (e) => {
       const row = e.target.parentNode;
       e.preventDefault();
       heaInputForm.innerText = "Modification d'une entrée";
