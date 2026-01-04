@@ -1,5 +1,12 @@
 <main>
   <% if (owner && repo) { %>
+  <div
+    id="divHelpButton"
+    class="topButton no-print"
+    style="background-color: transparent; border-color: #999; color: #666"
+  >
+    ?
+  </div>
   <header>
     <h1>Journal de travail de <%= me %> dans <%= projectName %></h1>
   </header>
@@ -38,7 +45,7 @@
       </tr>
     </tbody>
   </table>
-  <%- include('_editEntry') %> <% } else { %>
+  <%- include('_editEntry') %> <%- include('_helpModal') %> <% } else { %>
   <p>Renseignez une URL GitHub pour commencer.</p>
   <% } %>
 </main>
@@ -102,7 +109,7 @@
   document.querySelectorAll("tr").forEach((tr) => {
     tr.addEventListener("click", (e) => {
       // Don't interfere with link clicks (e.g., GitHub icon)
-      if (e.target.tagName === 'A' || e.target.closest('a')) {
+      if (e.target.tagName === "A" || e.target.closest("a")) {
         return;
       }
 
@@ -128,4 +135,21 @@
       author.value = row.dataset.author;
     });
   });
+
+  // Help modal
+  const helpBtn = document.getElementById("divHelpButton");
+  const helpOverlay = document.getElementById("helpOverlay");
+  const closeHelpBtn = document.getElementById("closeHelpBtn");
+
+  helpBtn.onclick = () => {
+    helpOverlay.classList.add("active");
+  };
+
+  closeHelpBtn.onclick = () => {
+    helpOverlay.classList.remove("active");
+  };
+
+  helpOverlay.onclick = (e) => {
+    if (e.target === helpOverlay) helpOverlay.classList.remove("active");
+  };
 </script>
