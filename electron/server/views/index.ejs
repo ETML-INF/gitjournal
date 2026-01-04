@@ -139,14 +139,9 @@
   // Help modal
   const helpBtn = document.getElementById("divHelpButton");
   const helpOverlay = document.getElementById("helpOverlay");
-  const closeHelpBtn = document.getElementById("closeHelpBtn");
 
   helpBtn.onclick = () => {
     helpOverlay.classList.add("active");
-  };
-
-  closeHelpBtn.onclick = () => {
-    helpOverlay.classList.remove("active");
   };
 
   helpOverlay.onclick = (e) => {
