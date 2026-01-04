@@ -147,4 +147,12 @@
   helpOverlay.onclick = (e) => {
     if (e.target === helpOverlay) helpOverlay.classList.remove("active");
   };
+
+  // Close all modals on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      overlay.classList.remove("active");
+      helpOverlay.classList.remove("active");
+    }
+  });
 </script>
