@@ -19,6 +19,7 @@ let mainWindow = null;
 let expressServer = null;
 let currentProjectPath = null;
 let currentProjectData = null;
+let fileToOpenAtStartup = null; // Fichier passé en argument ou via open-file
 
 const PORT = 5173;
 const SERVER_URL = `http://localhost:${PORT}`;
@@ -496,6 +497,29 @@ function createApplicationMenu() {
 
 // === CYCLE DE VIE DE L'APP ===
 
+// Vérifier si un fichier .gitj a été passé en argument (Windows/Linux)
+if (process.argv.length >= 2) {
+  const arg = process.argv.find(arg => arg.endsWith('.gitj'));
+  if (arg) {
+    fileToOpenAtStartup = arg;
+  }
+}
+
+// Gérer l'ouverture de fichier sur macOS
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+
+  if (filePath.endsWith('.gitj')) {
+    if (!mainWindow) {
+      // L'app n'est pas encore prête, on stocke le fichier
+      fileToOpenAtStartup = filePath;
+    } else {
+      // L'app est prête, on ouvre directement
+      openProject(filePath);
+    }
+  }
+});
+
 app.on("ready", async () => {
   try {
     // Initialiser le chemin des settings
@@ -504,16 +528,22 @@ app.on("ready", async () => {
     // Charger le token GitHub
     const token = await getGithubToken();
 
-    // Tenter de charger le dernier projet ouvert
-    const lastFile = await getLastOpenedFile();
-    if (lastFile) {
+    // Déterminer quel fichier ouvrir
+    let fileToOpen = fileToOpenAtStartup; // Priorité au fichier passé en argument
+
+    if (!fileToOpen) {
+      // Sinon, charger le dernier projet ouvert
+      fileToOpen = await getLastOpenedFile();
+    }
+
+    if (fileToOpen) {
       try {
-        const projectData = await loadProject(lastFile);
-        currentProjectPath = lastFile;
+        const projectData = await loadProject(fileToOpen);
+        currentProjectPath = fileToOpen;
         currentProjectData = projectData;
         setProjectData(projectData, token);
       } catch (error) {
-        console.log("Could not load last project:", error.message);
+        console.log("Could not load project:", error.message);
         // Pas grave, on démarre sans projet
       }
     }
