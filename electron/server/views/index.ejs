@@ -1,4 +1,9 @@
-<main>
+<div id="loadingSpinner" class="loading-spinner">
+  <div class="spinner"></div>
+  <p>Chargement des commits...</p>
+</div>
+
+<main id="mainContent" style="display: none;">
   <div
     id="divHelpButton"
     class="topButton no-print"
@@ -51,6 +56,15 @@
   <%- include('_editEntry') %> <%- include('_helpModal') %>
 </main>
 <script>
+  // Cacher le spinner et afficher le contenu une fois chargé
+  document.addEventListener('DOMContentLoaded', function() {
+    const spinner = document.getElementById('loadingSpinner');
+    const content = document.getElementById('mainContent');
+
+    if (spinner) spinner.style.display = 'none';
+    if (content) content.style.display = 'block';
+  });
+
   // Input form
   const openBtn = document.getElementById("divAddButton");
   const closeBtn = document.getElementById("closeBtn");
