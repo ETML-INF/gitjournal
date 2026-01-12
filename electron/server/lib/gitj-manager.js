@@ -1,4 +1,6 @@
 import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
 
 /**
  * Charge un fichier .gitj et retourne l'objet projet
@@ -7,6 +9,12 @@ import fs from 'fs/promises';
  */
 export async function loadProject(filePath) {
   const data = await fs.readFile(filePath, 'utf-8');
+
+  // Vérifier que le fichier n'est pas vide
+  if (!data || data.trim().length === 0) {
+    throw new Error('Le fichier .gitj est vide ou corrompu');
+  }
+
   const project = JSON.parse(data);
 
   // Valider la structure
@@ -16,7 +24,7 @@ export async function loadProject(filePath) {
 }
 
 /**
- * Sauvegarde un objet projet dans un fichier .gitj
+ * Sauvegarde un objet projet dans un fichier .gitj de manière atomique
  * @param {string} filePath - Chemin vers le fichier .gitj
  * @param {Object} projectData - L'objet projet à sauvegarder
  */
@@ -24,7 +32,44 @@ export async function saveProject(filePath, projectData) {
   // Valider avant de sauvegarder
   validateProject(projectData);
 
-  await fs.writeFile(filePath, JSON.stringify(projectData, null, 2), 'utf-8');
+  // Sérialiser les données
+  const jsonData = JSON.stringify(projectData, null, 2);
+
+  // Vérifier que les données ne sont pas vides
+  if (!jsonData || jsonData.trim().length === 0) {
+    throw new Error('Impossible de sauvegarder un projet vide');
+  }
+
+  // Écriture atomique : écrire dans un fichier temporaire puis renommer
+  const dir = path.dirname(filePath);
+  const filename = path.basename(filePath);
+  const tempPath = path.join(os.tmpdir(), `${filename}.${Date.now()}.tmp`);
+
+  try {
+    // Écrire dans le fichier temporaire
+    await fs.writeFile(tempPath, jsonData, 'utf-8');
+
+    // Vérifier que le fichier temporaire a été écrit correctement
+    const stats = await fs.stat(tempPath);
+    if (stats.size === 0) {
+      throw new Error('Le fichier temporaire est vide après écriture');
+    }
+
+    // Vérifier que les données sont valides en relisant
+    const writtenData = await fs.readFile(tempPath, 'utf-8');
+    JSON.parse(writtenData); // Valider que c'est du JSON valide
+
+    // Renommer atomiquement (remplace le fichier existant)
+    await fs.rename(tempPath, filePath);
+  } catch (error) {
+    // Nettoyer le fichier temporaire en cas d'erreur
+    try {
+      await fs.unlink(tempPath);
+    } catch (e) {
+      // Ignorer l'erreur de nettoyage
+    }
+    throw new Error(`Erreur lors de la sauvegarde atomique: ${error.message}`);
+  }
 }
 
 /**

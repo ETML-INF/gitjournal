@@ -20,6 +20,8 @@ let expressServer = null;
 let currentProjectPath = null;
 let currentProjectData = null;
 let fileToOpenAtStartup = null; // Fichier passé en argument ou via open-file
+let saveTimeout = null; // Pour le debounce de sauvegarde
+let isSaving = false; // Flag pour éviter les sauvegardes simultanées
 
 const PORT = 5173;
 const SERVER_URL = `http://localhost:${PORT}`;
@@ -165,13 +167,48 @@ async function saveCurrentProject() {
     return false;
   }
 
-  try {
-    await saveProject(currentProjectPath, currentProjectData);
-    return true;
-  } catch (error) {
-    dialog.showErrorBox("Erreur de sauvegarde", `Impossible de sauvegarder le projet: ${error.message}`);
+  // Éviter les sauvegardes simultanées
+  if (isSaving) {
+    console.log('Sauvegarde déjà en cours, ignorée');
     return false;
   }
+
+  try {
+    isSaving = true;
+
+    // Valider que les données ne sont pas vides avant de sauvegarder
+    if (!currentProjectData || Object.keys(currentProjectData).length === 0) {
+      console.error('Tentative de sauvegarde de données vides - ignorée');
+      return false;
+    }
+
+    console.log(`Sauvegarde du projet: ${currentProjectPath}`);
+    await saveProject(currentProjectPath, currentProjectData);
+    console.log('Sauvegarde réussie');
+    return true;
+  } catch (error) {
+    console.error('Erreur de sauvegarde:', error);
+    dialog.showErrorBox("Erreur de sauvegarde", `Impossible de sauvegarder le projet: ${error.message}`);
+    return false;
+  } finally {
+    isSaving = false;
+  }
+}
+
+/**
+ * Sauvegarde avec debounce pour éviter trop de sauvegardes
+ */
+function debouncedSave() {
+  // Annuler la sauvegarde précédente si elle n'a pas encore eu lieu
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+
+  // Programmer une nouvelle sauvegarde dans 500ms
+  saveTimeout = setTimeout(async () => {
+    await saveCurrentProject();
+    saveTimeout = null;
+  }, 500);
 }
 
 // === EXPORT PDF ===
@@ -549,10 +586,10 @@ app.on("ready", async () => {
     }
 
     // Setup du callback pour les changements de projet
-    onProjectChange(async (updatedProject) => {
+    onProjectChange((updatedProject) => {
       currentProjectData = updatedProject;
-      // Auto-save
-      await saveCurrentProject();
+      // Auto-save avec debounce pour éviter trop de sauvegardes
+      debouncedSave();
     });
 
     // Setup IPC handlers
@@ -586,8 +623,20 @@ app.on("activate", () => {
 });
 
 app.on("before-quit", async () => {
-  // Sauvegarder le projet avant de quitter
+  // Annuler toute sauvegarde en attente
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+
+  // Attendre la fin de toute sauvegarde en cours
+  while (isSaving) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  // Sauvegarder le projet une dernière fois avant de quitter
   if (currentProjectPath && currentProjectData) {
+    console.log('Sauvegarde finale avant fermeture de l\'application');
     await saveCurrentProject();
   }
 
