@@ -1,6 +1,6 @@
 {
   "name": "GitJournal",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Journal de travail Git - Application Electron",
   "main": "main.js",
   "type": "module",
@@ -28,6 +28,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "version.js",
       "settings.html",
       "new-project.html",
       "server/**/*",
@@ -41,15 +42,24 @@
     "mac": {
       "icon": "assets/icon.icns",
       "category": "public.app-category.productivity",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "icon": "assets/icon.ico",
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
       "icon": "assets/icon.png",
-      "target": ["AppImage", "deb"]
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
   }
 }

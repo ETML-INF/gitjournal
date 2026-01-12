@@ -3,7 +3,7 @@
   <p>Chargement des commits...</p>
 </div>
 
-<main id="mainContent" style="display: none;">
+<main id="mainContent" style="display: none">
   <div
     id="divHelpButton"
     class="topButton no-print"
@@ -53,16 +53,19 @@
       </tr>
     </tbody>
   </table>
+
+  <div class="no-print" style="color: #ccc; font-size: 0.75rem; font-style: italic">GitJournal v<%= appVersion %></div>
+
   <%- include('_editEntry') %> <%- include('_helpModal') %>
 </main>
 <script>
   // Cacher le spinner et afficher le contenu une fois chargé
-  document.addEventListener('DOMContentLoaded', function() {
-    const spinner = document.getElementById('loadingSpinner');
-    const content = document.getElementById('mainContent');
+  document.addEventListener("DOMContentLoaded", function () {
+    const spinner = document.getElementById("loadingSpinner");
+    const content = document.getElementById("mainContent");
 
-    if (spinner) spinner.style.display = 'none';
-    if (content) content.style.display = 'block';
+    if (spinner) spinner.style.display = "none";
+    if (content) content.style.display = "block";
   });
 
   // Input form

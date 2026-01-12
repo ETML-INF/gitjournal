@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import fetch from "node-fetch";
 import expressLayouts from "express-ejs-layouts";
 import crypto from "crypto";
+import { VERSION as APP_VERSION } from '../version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -249,7 +250,8 @@ app.get(["/", "/jdt"], async (req, res) => {
       groups,
       totals,
       projectName: projectName || repo,
-      me
+      me,
+      appVersion: APP_VERSION
     });
   } catch (e) {
     console.error('Erreur lors du chargement du journal:', e.message);
