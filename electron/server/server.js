@@ -216,13 +216,19 @@ app.get(["/", "/jdt"], async (req, res) => {
     // Utiliser les exceptions du projet au lieu de lire depuis JSON
     const exc = currentProject.exceptions || [];
 
+    // Filtrer les commits exclus
+    const excludedShas = new Set(
+      exc.filter((e) => e.excluded === true).map((e) => (e.sha || "").toLowerCase().trim())
+    );
+    const notExcluded = myEntries.filter((e) => !excludedShas.has((e.sha || "").toLowerCase().trim()));
+
     // Remplacer les commits par leurs exceptions
     const keyOf = (x) => (x.sha || x.id || "").toLowerCase().trim();
     const excByKey = new Map(exc.map((x) => [keyOf(x), x]));
-    const patched = myEntries.map((e) => {
+    const patched = notExcluded.map((e) => {
       const repl = excByKey.get(keyOf(e));
-      if (repl) {
-        return repl; // remplace si une exception existe
+      if (repl && !repl.excluded) {
+        return repl; // remplace si une exception existe (et n'est pas exclue)
       }
       return e;
     });
@@ -290,6 +296,87 @@ app.post("/add", async (req, res) => {
     }
 
     return res.redirect("/jdt");
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST exclure un commit
+app.post("/exclude", async (req, res) => {
+  try {
+    if (!currentProject) {
+      return res.status(400).json({ error: 'Aucun projet ouvert' });
+    }
+
+    const { sha } = req.body;
+
+    if (!sha || sha === "-") {
+      return res.status(400).json({ error: 'SHA invalide' });
+    }
+
+    if (!currentProject.exceptions) {
+      currentProject.exceptions = [];
+    }
+
+    // Vérifier si le commit n'est pas déjà exclu
+    const existing = currentProject.exceptions.find(
+      (e) => e.sha && e.sha.toLowerCase().trim() === sha.toLowerCase().trim()
+    );
+
+    if (existing) {
+      // Marquer comme exclu
+      existing.excluded = true;
+    } else {
+      // Créer une nouvelle exception d'exclusion
+      currentProject.exceptions.push({
+        sha: sha,
+        excluded: true
+      });
+    }
+
+    // Notifier main.js que le projet a changé
+    if (onProjectChangeCallback) {
+      onProjectChangeCallback(currentProject);
+    }
+
+    return res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST supprimer une entrée manuelle
+app.post("/delete", async (req, res) => {
+  try {
+    if (!currentProject) {
+      return res.status(400).json({ error: 'Aucun projet ouvert' });
+    }
+
+    const { exceptionId } = req.body;
+
+    if (!exceptionId || exceptionId === "-") {
+      return res.status(400).json({ error: 'ID d\'exception invalide' });
+    }
+
+    if (!currentProject.exceptions) {
+      return res.status(404).json({ error: 'Entrée non trouvée' });
+    }
+
+    // Trouver et supprimer l'entrée
+    const index = currentProject.exceptions.findIndex((e) => e.id === exceptionId);
+
+    if (index === -1) {
+      return res.status(404).json({ error: 'Entrée non trouvée' });
+    }
+
+    currentProject.exceptions.splice(index, 1);
+
+    // Notifier main.js que le projet a changé
+    if (onProjectChangeCallback) {
+      onProjectChangeCallback(currentProject);
+    }
+
+    return res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

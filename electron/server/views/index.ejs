@@ -73,6 +73,7 @@
     url.value = "-";
 
     dpdStatus.disabled = false;
+    excludeBtn.style.display = "none"; // Cacher le bouton Exclure pour une nouvelle entrée
     overlay.classList.add("active");
   };
   closeBtn.onclick = () => overlay.classList.remove("active");
@@ -134,8 +135,83 @@
       url.value = row.dataset.url;
       dpdStatus.value = row.dataset.status;
       author.value = row.dataset.author;
+
+      // Afficher le bouton Exclure/Supprimer selon le type d'entrée
+      if (row.dataset.sha && row.dataset.sha !== "-") {
+        // C'est un commit - afficher "Exclure"
+        excludeBtn.textContent = "Exclure";
+        excludeBtn.style.display = "block";
+      } else if (row.dataset.exceptionid && row.dataset.exceptionid !== "-") {
+        // C'est une entrée manuelle - afficher "Supprimer"
+        excludeBtn.textContent = "Supprimer";
+        excludeBtn.style.display = "block";
+      } else {
+        excludeBtn.style.display = "none";
+      }
     });
   });
+
+  // Exclude/Delete button handler
+  const excludeBtn = document.getElementById("excludeBtn");
+
+  excludeBtn.onclick = async () => {
+    const sha = hidSHA.value;
+    const exceptionId = document.getElementById("exceptionId").value;
+
+    // Déterminer si c'est un commit ou une entrée manuelle
+    const isManualEntry = exceptionId && exceptionId !== "-";
+    const isCommit = sha && sha !== "-";
+
+    if (isManualEntry) {
+      // Suppression d'une entrée manuelle
+      if (!confirm("Voulez-vous vraiment supprimer cette entrée manuelle ?")) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exceptionId: exceptionId })
+        });
+
+        if (response.ok) {
+          overlay.classList.remove("active");
+          window.location.reload();
+        } else {
+          const error = await response.json();
+          alert("Erreur lors de la suppression: " + (error.error || "Erreur inconnue"));
+        }
+      } catch (error) {
+        alert("Erreur lors de la suppression: " + error.message);
+      }
+    } else if (isCommit) {
+      // Exclusion d'un commit
+      if (!confirm("Voulez-vous vraiment exclure ce commit du journal ?")) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/exclude", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sha: sha })
+        });
+
+        if (response.ok) {
+          overlay.classList.remove("active");
+          window.location.reload();
+        } else {
+          const error = await response.json();
+          alert("Erreur lors de l'exclusion: " + (error.error || "Erreur inconnue"));
+        }
+      } catch (error) {
+        alert("Erreur lors de l'exclusion: " + error.message);
+      }
+    } else {
+      alert("Cette entrée ne peut être ni exclue ni supprimée");
+    }
+  };
 
   // Help modal
   const helpBtn = document.getElementById("divHelpButton");
