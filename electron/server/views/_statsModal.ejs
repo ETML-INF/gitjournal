@@ -1,0 +1,21 @@
+<div class="overlay" id="statsOverlay">
+  <div class="modal" style="max-width: 400px">
+    <h2>Statistiques</h2>
+    <% if (owner && repo) { %>
+    <p style="margin: 0.5rem 0; font-size: 0.9em;">
+      • Commits récupérés de l'API GitHub : <strong><%= commitStats.fromApi %></strong><br>
+      • Commits avec durée valide : <strong><%= commitStats.withDuration %></strong><br>
+      • Commits de l'auteur "<%= me %>" : <strong><%= commitStats.byAuthor %></strong><br>
+      • Après exclusions : <strong><%= commitStats.afterExclusions %></strong><br>
+      • Entrées manuelles : <strong><%= commitStats.manualEntries %></strong><br>
+      <br>
+      <strong>Total affiché : <%= commitStats.total %></strong>
+    </p>
+    <% } else { %>
+    <p style="margin: 0.5rem 0; font-size: 0.9em;">
+      Aucun repository Git configuré.<br>
+      Entrées manuelles : <strong><%= commitStats.manualEntries %></strong>
+    </p>
+    <% } %>
+  </div>
+</div>

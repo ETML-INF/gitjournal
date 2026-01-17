@@ -5,6 +5,13 @@
 
 <main id="mainContent" style="display: none">
   <div
+    id="divStatsButton"
+    class="topButton no-print"
+    style="background-color: transparent; border-color: #999; color: #666; right: 70px"
+  >
+    i
+  </div>
+  <div
     id="divHelpButton"
     class="topButton no-print"
     style="background-color: transparent; border-color: #999; color: #666"
@@ -24,7 +31,6 @@
   <p class="muted print-only">Depuis: <strong><%= since %></strong></p>
   <% } %>
 
-  <div id="divAddButton" class="topButton no-print">+</div>
   <table>
     <thead>
       <tr>
@@ -53,10 +59,12 @@
       </tr>
     </tbody>
   </table>
-
+  <div style="text-align: center; margin-top: 15px">
+    <div id="divAddButton" class="addButton no-print" style="display: inline-block">+</div>
+  </div>
   <div class="no-print" style="color: #ccc; font-size: 0.75rem; font-style: italic">GitJournal v<%= appVersion %></div>
 
-  <%- include('_editEntry') %> <%- include('_helpModal') %>
+  <%- include('_editEntry') %> <%- include('_helpModal') %> <%- include('_statsModal') %>
 </main>
 <script>
   // Cacher le spinner et afficher le contenu une fois chargé
@@ -242,11 +250,24 @@
     if (e.target === helpOverlay) helpOverlay.classList.remove("active");
   };
 
+  // Stats modal
+  const statsBtn = document.getElementById("divStatsButton");
+  const statsOverlay = document.getElementById("statsOverlay");
+
+  statsBtn.onclick = () => {
+    statsOverlay.classList.add("active");
+  };
+
+  statsOverlay.onclick = (e) => {
+    if (e.target === statsOverlay) statsOverlay.classList.remove("active");
+  };
+
   // Close all modals on Escape key
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       overlay.classList.remove("active");
       helpOverlay.classList.remove("active");
+      statsOverlay.classList.remove("active");
     }
   });
 </script>

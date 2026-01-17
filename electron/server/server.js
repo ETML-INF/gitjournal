@@ -206,12 +206,23 @@ app.get(["/", "/jdt"], async (req, res) => {
       : null;
 
     let myEntries = [];
+    let commitStats = {
+      fromApi: 0,
+      withDuration: 0,
+      byAuthor: 0,
+      afterExclusions: 0,
+      manualEntries: 0,
+      total: 0
+    };
 
     // Fetch des commits seulement si un repo est configuré
     if (owner && repo) {
       const raw = await fetchAllCommits({ owner, repo, branch, since: journalStartDate });
+      commitStats.fromApi = raw.length;
       const entries = raw.map(groom).filter((c) => c.duration > 0);
+      commitStats.withDuration = entries.length;
       myEntries = entries.filter((c) => c.author == me);
+      commitStats.byAuthor = myEntries.length;
     }
 
     // Utiliser les exceptions du projet au lieu de lire depuis JSON
@@ -222,6 +233,7 @@ app.get(["/", "/jdt"], async (req, res) => {
       exc.filter((e) => e.excluded === true).map((e) => (e.sha || "").toLowerCase().trim())
     );
     const notExcluded = myEntries.filter((e) => !excludedShas.has((e.sha || "").toLowerCase().trim()));
+    commitStats.afterExclusions = notExcluded.length;
 
     // Remplacer les commits par leurs exceptions
     const keyOf = (x) => (x.sha || x.id || "").toLowerCase().trim();
@@ -235,7 +247,10 @@ app.get(["/", "/jdt"], async (req, res) => {
     });
 
     // Ajouter les entrées "commitless"
-    const allEntriesReady = patched.concat(exc.filter((e) => e.type == "commitless"));
+    const manualEntries = exc.filter((e) => e.type == "commitless");
+    commitStats.manualEntries = manualEntries.length;
+    const allEntriesReady = patched.concat(manualEntries);
+    commitStats.total = allEntriesReady.length;
 
     // Grouper + totaux
     const groups = groupByDay(allEntriesReady);
@@ -251,7 +266,8 @@ app.get(["/", "/jdt"], async (req, res) => {
       totals,
       projectName: projectName || repo,
       me,
-      appVersion: APP_VERSION
+      appVersion: APP_VERSION,
+      commitStats
     });
   } catch (e) {
     console.error('Erreur lors du chargement du journal:', e.message);
