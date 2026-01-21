@@ -4,5 +4,26 @@
   "branch": "main",
   "me": "XCarrel",
   "journalStartDate": null,
-  "exceptions": []
+  "exceptions": [
+    {
+      "id": "0704e4eb-0da7-48a9-88f7-289aeb5859c3",
+      "type": "commitless",
+      "name": "Préparé une démo",
+      "description": "sur papier A4",
+      "date": "2026-01-21T08:19",
+      "duration": 10,
+      "status": "Done",
+      "author": "Xavier Carrel"
+    },
+    {
+      "id": "d227429c-e77e-461a-b5b4-db4e03994138",
+      "type": "commitless",
+      "name": "Enregistré la démo",
+      "description": "Avec Quicktime",
+      "date": "2026-01-21T07:19:00.000Z",
+      "duration": 15,
+      "status": "Done",
+      "author": "Xavier Carrel"
+    }
+  ]
 }
