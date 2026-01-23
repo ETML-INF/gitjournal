@@ -5,6 +5,7 @@ import fetch from "node-fetch";
 import expressLayouts from "express-ejs-layouts";
 import crypto from "crypto";
 import { VERSION as APP_VERSION } from '../version.js';
+import { groom } from './lib/commit-parser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,39 +95,6 @@ async function fetchAllCommits({ owner, repo, branch, since }) {
     page++;
   }
   return all;
-}
-
-function groom(commit) {
-  // 1ère ligne=titre, 2e ligne=meta [hh][mm][status], reste=description
-  let duration = 0;
-  let status = "";
-  const lines = commit.commit.message.split("\n").filter((l) => l.trim() !== "");
-  if (lines.length > 1) {
-    const metaLine = lines[1];
-    const matches = [...metaLine.matchAll(/\[(.*?)\]/g)].map((m) => m[1]);
-    if (matches.length) {
-      for (const m of matches) {
-        const nums = m.match(/\d+/g);
-        if (!nums) {
-          status = m;
-        } else if (nums.length < 3) {
-          nums.forEach((n) => {
-            duration = duration * 60 + parseInt(n);
-          });
-        }
-      }
-    }
-  }
-  return {
-    sha: commit.sha,
-    name: lines[0] || commit.commit.message.split("\n")[0],
-    description: lines.slice(2).join("\n"),
-    date: commit.commit.author.date,
-    duration,
-    status,
-    author: commit.author?.login || commit.commit?.author?.name || "?",
-    url: commit.html_url
-  };
 }
 
 function totalDuration(commits) {

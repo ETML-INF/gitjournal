@@ -7,10 +7,11 @@
   "scripts": {
     "start": "electron .",
     "dev": "NODE_ENV=development electron .",
-    "build": "electron-builder",
-    "build:mac": "electron-builder --mac",
-    "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux"
+    "test": "node --test server/server.test.js",
+    "build": "npm test && electron-builder",
+    "build:mac": "npm test && electron-builder --mac",
+    "build:win": "npm test && electron-builder --win",
+    "build:linux": "npm test && electron-builder --linux"
   },
   "dependencies": {
     "ejs": "^3.1.10",
