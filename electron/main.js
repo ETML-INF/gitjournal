@@ -23,8 +23,8 @@ let fileToOpenAtStartup = null; // Fichier passé en argument ou via open-file
 let saveTimeout = null; // Pour le debounce de sauvegarde
 let isSaving = false; // Flag pour éviter les sauvegardes simultanées
 
-const PORT = 5173;
-const SERVER_URL = `http://localhost:${PORT}`;
+let serverPort = 0; // Will be assigned dynamically
+const getServerUrl = () => `http://localhost:${serverPort}`;
 
 // === GESTION DES PROJETS ===
 
@@ -343,15 +343,14 @@ function setupIpcHandlers() {
 async function startExpressServer() {
   return new Promise((resolve, reject) => {
     try {
-      expressServer = expressApp.listen(PORT, () => {
-        console.log(`Express server started on port ${PORT}`);
+      // Use port 0 to get an automatically assigned free port
+      expressServer = expressApp.listen(0, () => {
+        serverPort = expressServer.address().port;
+        console.log(`Express server started on port ${serverPort}`);
         resolve();
       });
 
       expressServer.on("error", (error) => {
-        if (error.code === "EADDRINUSE") {
-          console.error(`Port ${PORT} is already in use`);
-        }
         reject(error);
       });
     } catch (error) {
@@ -376,7 +375,7 @@ function createMainWindow() {
     icon: path.join(__dirname, "assets", "icon.png")
   });
 
-  mainWindow.loadURL(`${SERVER_URL}/jdt`);
+  mainWindow.loadURL(`${getServerUrl()}/jdt`);
 
   // DevTools en mode développement
   if (process.env.NODE_ENV === "development") {
