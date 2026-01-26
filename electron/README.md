@@ -90,19 +90,41 @@ Vous pouvez éditer ce fichier directement avec un éditeur de texte pour config
 
 ### Format des messages de commit
 
-L'application parse vos messages de commit selon ce format :
+L'application recherche les métadonnées entre crochets **n'importe où** dans le message de commit :
 
 ```
-Titre du commit
-[2][30][Done]
+feat: add login [30m done]
+```
+
+ou sur une ligne séparée :
+
+```
+feat: add login
+[30m done]
 Description détaillée...
 ```
 
-- Ligne 1 : Titre
-- Ligne 2 : Métadonnées entre crochets
-  - Durée : `[2][30]` = 2h30 ou `[90]` = 90 minutes
-  - Statut : `[Done]`, `[WIP]`, etc.
-- Lignes suivantes : Description
+Les métadonnées trouvées dans le titre sont automatiquement retirées de l'affichage.
+
+**Format classique (multi-crochets) :**
+```
+[2][30][Done]
+```
+- `[2][30]` = 2h30 (durée implicite heures/minutes)
+- `[90]` = 90 minutes
+- `[Done]`, `[WIP]` = statut
+
+**Format compact (crochet unique) :**
+```
+[2h30 done]
+```
+- `[2h30]` ou `[2h30m]` = 2h30
+- `[45m]` = 45 minutes
+- `[1h]` = 1 heure
+- `[5 done]` = 5 minutes (unité implicite)
+- `[2h30 done]`, `[45m wip]`, `[30 wip]` = durée + statut
+
+Le statut est optionnel dans les deux formats.
 
 ### Ajouter des entrées manuelles
 
