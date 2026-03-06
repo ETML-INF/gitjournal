@@ -5,3 +5,5 @@ Je modifie le .gitj pour qu'il considère la branche test_branches. `commit02`. 
 j'ai mergé `test_branches`dans `main`, remis `main` dans le .gitj. `commit03` , que je compte voir avec les deux autres
 
 j'ai supprimé la branche: le jdt reste OK. `commit04`
+
+je bosse sur test_branche2 .....
