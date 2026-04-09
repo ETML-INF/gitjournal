@@ -131,7 +131,7 @@ function totalDuration(commits) {
 
 // helpers de format
 const fmtDayLabel = (d) =>
-  new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(d));
+  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "2-digit", month: "short", year: "numeric" }).format(new Date(d));
 
 const toDayKey = (isoLike) => new Date(isoLike).toISOString().slice(0, 10); // "YYYY-MM-DD"
 
