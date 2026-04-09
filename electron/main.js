@@ -134,9 +134,10 @@ async function createProjectWithConfig(config) {
     const projectData = {
       repoUrl: config.repoUrl,
       projectName: config.projectName,
-      branch: config.branch || "main",
       me: config.me,
       journalStartDate: config.journalStartDate || null,
+      lastSync: null,
+      commits: [],
       exceptions: []
     };
 
@@ -498,6 +499,31 @@ function createApplicationMenu() {
         { role: "copy", label: "Copier" },
         { role: "paste", label: "Coller" },
         { role: "selectAll", label: "Tout sélectionner" }
+      ]
+    },
+
+    // Menu Synchronisation
+    {
+      label: "Synchronisation",
+      submenu: [
+        {
+          label: "Fetch",
+          accelerator: "CmdOrCtrl+Shift+F",
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.executeJavaScript('window.doFetch && window.doFetch()');
+            }
+          }
+        },
+        {
+          label: "Pull",
+          accelerator: "CmdOrCtrl+Shift+L",
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.executeJavaScript('window.doPull && window.doPull()');
+            }
+          }
+        }
       ]
     },
 

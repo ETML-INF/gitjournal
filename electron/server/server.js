@@ -64,7 +64,11 @@ async function fetchBranches(owner, repo) {
   return data.map((b) => b.name);
 }
 
-async function fetchAllCommits({ owner, repo, branch, since }) {
+/**
+ * Récupère les commits d'une branche donnée depuis une date (optionnel),
+ * filtré par auteur (optionnel).
+ */
+async function fetchCommitsForBranch({ owner, repo, branch, since, author }) {
   const perPage = 100;
   let page = 1;
   let all = [];
@@ -72,11 +76,11 @@ async function fetchAllCommits({ owner, repo, branch, since }) {
   while (keep) {
     const params = new URLSearchParams({ sha: branch, per_page: `${perPage}`, page: `${page}` });
     if (since) params.set("since", since);
+    if (author) params.set("author", author);
     const url = `${GH}/repos/${owner}/${repo}/commits?${params}`;
     const r = await fetch(url, { headers: ghHeaders() });
     if (!r.ok) {
       let errorMsg = '';
-
       if (r.status === 401) {
         errorMsg = 'Token GitHub invalide ou expiré. Veuillez vérifier votre token dans Préférences.';
       } else if (r.status === 404) {
@@ -86,7 +90,6 @@ async function fetchAllCommits({ owner, repo, branch, since }) {
       } else {
         errorMsg = `Erreur GitHub API (${r.status}): ${r.statusText}`;
       }
-
       throw new Error(errorMsg);
     }
     const batch = await r.json();
@@ -95,6 +98,28 @@ async function fetchAllCommits({ owner, repo, branch, since }) {
     page++;
   }
   return all;
+}
+
+/**
+ * Récupère tous les commits de toutes les branches, dédupliqués par SHA,
+ * filtrés par auteur. Utilisé pour fetch et pull.
+ */
+async function fetchAllBranchesCommits({ owner, repo, me, since }) {
+  const branches = await fetchBranches(owner, repo);
+  const seenShas = new Set();
+  const allCommits = [];
+
+  for (const branch of branches) {
+    const commits = await fetchCommitsForBranch({ owner, repo, branch, since, author: me });
+    for (const c of commits) {
+      if (!seenShas.has(c.sha)) {
+        seenShas.add(c.sha);
+        allCommits.push(c);
+      }
+    }
+  }
+
+  return allCommits;
 }
 
 function totalDuration(commits) {
@@ -152,7 +177,7 @@ function validateException(x) {
   return null;
 }
 
-// Page d'accueil + génération serveur
+// Page d'accueil — utilise le cache local, pas d'appel GitHub
 app.get(["/", "/jdt"], async (req, res) => {
   try {
     // Vérifier qu'un projet est ouvert
@@ -162,7 +187,7 @@ app.get(["/", "/jdt"], async (req, res) => {
       });
     }
 
-    const { repoUrl, projectName, branch, me, journalStartDate } = currentProject;
+    const { repoUrl, projectName, me, journalStartDate, lastSync } = currentProject;
     const { owner, repo } = parseRepoUrl(repoUrl);
 
     const since = journalStartDate
@@ -173,25 +198,22 @@ app.get(["/", "/jdt"], async (req, res) => {
         }).format(new Date(journalStartDate))
       : null;
 
-    let myEntries = [];
-    let commitStats = {
-      fromApi: 0,
-      withDuration: 0,
-      byAuthor: 0,
+    // Commits depuis le cache local (déjà filtrés par auteur lors du pull)
+    const localCommits = currentProject.commits || [];
+
+    // Filtrer par journalStartDate pour l'affichage
+    const sinceDate = journalStartDate ? new Date(journalStartDate) : null;
+    let myEntries = sinceDate
+      ? localCommits.filter((c) => new Date(c.date) >= sinceDate)
+      : [...localCommits];
+
+    const commitStats = {
+      cached: localCommits.length,
+      displayed: myEntries.length,
       afterExclusions: 0,
       manualEntries: 0,
       total: 0
     };
-
-    // Fetch des commits seulement si un repo est configuré
-    if (owner && repo) {
-      const raw = await fetchAllCommits({ owner, repo, branch, since: journalStartDate });
-      commitStats.fromApi = raw.length;
-      const entries = raw.map(groom).filter((c) => c.duration > 0);
-      commitStats.withDuration = entries.length;
-      myEntries = entries.filter((c) => c.author == me);
-      commitStats.byAuthor = myEntries.length;
-    }
 
     // Utiliser les exceptions du projet au lieu de lire depuis JSON
     const exc = currentProject.exceptions || [];
@@ -224,23 +246,31 @@ app.get(["/", "/jdt"], async (req, res) => {
     const groups = groupByDay(allEntriesReady);
     const totals = totalDuration(allEntriesReady);
 
+    // Formater lastSync pour l'affichage
+    const lastSyncFormatted = lastSync
+      ? new Intl.DateTimeFormat("fr-FR", {
+          day: "2-digit", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit"
+        }).format(new Date(lastSync))
+      : null;
+
     return res.render("index", {
       defaultRepoUrl: repoUrl,
       owner,
       repo,
-      selectedBranch: branch,
       since,
       groups,
       totals,
       projectName: projectName || repo,
       me,
       appVersion: APP_VERSION,
-      commitStats
+      commitStats,
+      lastSync: lastSync || null,
+      lastSyncFormatted
     });
   } catch (e) {
     console.error('Erreur lors du chargement du journal:', e.message);
 
-    // Déterminer le type d'erreur pour afficher les instructions appropriées
     let errorType = 'generic';
     if (e.message.includes('Token GitHub invalide') || e.message.includes('401')) {
       errorType = 'github_token';
@@ -253,6 +283,86 @@ app.get(["/", "/jdt"], async (req, res) => {
       errorType: errorType,
       repoUrl: currentProject?.repoUrl || 'N/A'
     });
+  }
+});
+
+// GET /fetch — vérifie si de nouveaux commits sont disponibles en amont (sans modifier le cache)
+app.get("/fetch", async (req, res) => {
+  try {
+    if (!currentProject) {
+      return res.status(400).json({ error: 'Aucun projet ouvert' });
+    }
+
+    const { repoUrl, me, lastSync, journalStartDate } = currentProject;
+    const { owner, repo } = parseRepoUrl(repoUrl);
+
+    if (!owner || !repo) {
+      return res.status(400).json({ error: 'URL du dépôt invalide ou manquante' });
+    }
+
+    const since = lastSync || journalStartDate || null;
+    const remoteCommits = await fetchAllBranchesCommits({ owner, repo, me, since });
+
+    // Compter les commits pas encore dans le cache local
+    const localShas = new Set((currentProject.commits || []).map((c) => c.sha));
+    const newCommits = remoteCommits.filter((c) => !localShas.has(c.sha));
+
+    return res.json({
+      newCount: newCommits.length,
+      lastSync: lastSync || null
+    });
+  } catch (e) {
+    console.error('Erreur fetch:', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /pull — télécharge les nouveaux commits et met à jour le cache local
+app.post("/pull", async (req, res) => {
+  try {
+    if (!currentProject) {
+      return res.status(400).json({ error: 'Aucun projet ouvert' });
+    }
+
+    const { repoUrl, me, lastSync, journalStartDate } = currentProject;
+    const { owner, repo } = parseRepoUrl(repoUrl);
+
+    if (!owner || !repo) {
+      return res.status(400).json({ error: 'URL du dépôt invalide ou manquante' });
+    }
+
+    const since = lastSync || journalStartDate || null;
+    const rawCommits = await fetchAllBranchesCommits({ owner, repo, me, since });
+
+    // Initialiser le tableau si absent (fichiers migrés)
+    if (!Array.isArray(currentProject.commits)) currentProject.commits = [];
+
+    // Dédupliquer par SHA avec le cache existant
+    const localShas = new Set(currentProject.commits.map((c) => c.sha));
+
+    // Transformer, filtrer les commits sans durée, et dédupliquer
+    const newGroomed = rawCommits
+      .filter((c) => !localShas.has(c.sha))
+      .map(groom)
+      .filter((c) => c.duration > 0);
+
+    // Ajouter au cache
+    currentProject.commits = currentProject.commits.concat(newGroomed);
+    currentProject.lastSync = new Date().toISOString();
+
+    // Notifier main.js pour la sauvegarde automatique
+    if (onProjectChangeCallback) {
+      onProjectChangeCallback(currentProject);
+    }
+
+    return res.json({
+      added: newGroomed.length,
+      total: currentProject.commits.length,
+      lastSync: currentProject.lastSync
+    });
+  } catch (e) {
+    console.error('Erreur pull:', e.message);
+    return res.status(500).json({ error: e.message });
   }
 });
 

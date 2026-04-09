@@ -1,9 +1,20 @@
-<div id="loadingSpinner" class="loading-spinner">
-  <div class="spinner"></div>
-  <p>Chargement des commits...</p>
-</div>
+<main id="mainContent">
+  <!-- Barre de synchronisation -->
+  <% if (owner && repo) { %>
+  <div id="syncBar" class="no-print" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem;">
+    <span style="color: #555;">
+      <% if (lastSyncFormatted) { %>
+        Dernière sync&nbsp;: <strong><%= lastSyncFormatted %></strong>
+      <% } else { %>
+        <em style="color:#c0392b;">Jamais synchronisé — faites un Pull pour charger les commits</em>
+      <% } %>
+    </span>
+    <button id="fetchBtn" style="padding: 0.25rem 0.75rem; border: 1px solid #aaa; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem;">Fetch</button>
+    <button id="pullBtn" style="padding: 0.25rem 0.75rem; border: 1px solid #aaa; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem;">Pull</button>
+    <span id="syncMsg" style="display: none; color: #555; font-style: italic;"></span>
+  </div>
+  <% } %>
 
-<main id="mainContent" style="display: none">
   <div
     id="divStatsButton"
     class="topButton no-print"
@@ -25,9 +36,7 @@
     <h1>Journal de travail de <%= me %> - <%= projectName %></h1>
     <% } %>
   </header>
-  <% if (owner && repo && selectedBranch != "main") { %>
-  <p class="muted print-only">Branche: <strong><%= selectedBranch %></strong></p>
-  <% } %> <% if (since) { %>
+  <% if (since) { %>
   <p class="muted print-only">Depuis: <strong><%= since %></strong></p>
   <% } %>
 
@@ -67,15 +76,6 @@
   <%- include('_editEntry') %> <%- include('_helpModal') %> <%- include('_statsModal') %>
 </main>
 <script>
-  // Cacher le spinner et afficher le contenu une fois chargé
-  document.addEventListener("DOMContentLoaded", function () {
-    const spinner = document.getElementById("loadingSpinner");
-    const content = document.getElementById("mainContent");
-
-    if (spinner) spinner.style.display = "none";
-    if (content) content.style.display = "block";
-  });
-
   // Input form
   const openBtn = document.getElementById("divAddButton");
   const closeBtn = document.getElementById("closeBtn");
@@ -270,4 +270,70 @@
       statsOverlay.classList.remove("active");
     }
   });
+
+  // === Synchronisation Fetch / Pull ===
+
+  const syncMsg = document.getElementById("syncMsg");
+
+  function setSyncMsg(text, color) {
+    if (!syncMsg) return;
+    syncMsg.textContent = text;
+    syncMsg.style.color = color || "#555";
+    syncMsg.style.display = text ? "inline" : "none";
+  }
+
+  window.doFetch = async function doFetch() {
+    const btn = document.getElementById("fetchBtn");
+    if (!btn) return;
+    btn.disabled = true;
+    setSyncMsg("Fetch en cours…", "#555");
+    try {
+      const r = await fetch("/fetch");
+      const data = await r.json();
+      if (data.error) {
+        setSyncMsg("Erreur : " + data.error, "#c0392b");
+      } else if (data.newCount === 0) {
+        setSyncMsg("Déjà à jour.", "#27ae60");
+      } else {
+        setSyncMsg(
+          data.newCount + " nouveau" + (data.newCount > 1 ? "x" : "") + " commit" + (data.newCount > 1 ? "s" : "") + " disponible" + (data.newCount > 1 ? "s" : "") + ". Faites un Pull pour les récupérer.",
+          "#e67e22"
+        );
+      }
+    } catch (e) {
+      setSyncMsg("Erreur : " + e.message, "#c0392b");
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  window.doPull = async function doPull() {
+    const btn = document.getElementById("pullBtn");
+    if (!btn) return;
+    btn.disabled = true;
+    setSyncMsg("Pull en cours…", "#555");
+    try {
+      const r = await fetch("/pull", { method: "POST" });
+      const data = await r.json();
+      if (data.error) {
+        setSyncMsg("Erreur : " + data.error, "#c0392b");
+        btn.disabled = false;
+      } else {
+        const msg = data.added === 0
+          ? "Déjà à jour. Actualisation…"
+          : data.added + " commit" + (data.added > 1 ? "s" : "") + " ajouté" + (data.added > 1 ? "s" : "") + ". Actualisation…";
+        setSyncMsg(msg, "#27ae60");
+        setTimeout(() => window.location.reload(), 800);
+      }
+    } catch (e) {
+      setSyncMsg("Erreur : " + e.message, "#c0392b");
+      btn.disabled = false;
+    }
+  };
+
+  // Boutons dans la barre
+  const fetchBtn = document.getElementById("fetchBtn");
+  const pullBtn = document.getElementById("pullBtn");
+  if (fetchBtn) fetchBtn.onclick = window.doFetch;
+  if (pullBtn) pullBtn.onclick = window.doPull;
 </script>

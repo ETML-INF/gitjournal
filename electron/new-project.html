@@ -114,12 +114,6 @@
         </div>
 
         <div class="form-group">
-          <label for="branch"> Branche </label>
-          <input type="text" id="branch" value="main" />
-          <p class="help-text">La branche Git à analyser (par défaut: main)</p>
-        </div>
-
-        <div class="form-group">
           <label for="journalStartDate"> Date de début (optionnel) </label>
           <input type="datetime-local" id="journalStartDate" />
           <p class="help-text">Récupérer uniquement les commits depuis cette date</p>
@@ -152,7 +146,6 @@
             projectName: document.getElementById("projectName").value.trim(),
             repoUrl: document.getElementById("repoUrl").value.trim() || "",
             me: document.getElementById("me").value.trim(),
-            branch: document.getElementById("branch").value.trim() || "main",
             journalStartDate: document.getElementById("journalStartDate").value || null
           };
 

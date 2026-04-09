@@ -25,5 +25,198 @@
       "status": "Done",
       "author": "Xavier Carrel"
     }
-  ]
+  ],
+  "commits": [
+    {
+      "sha": "3fe248a99b02523e7de63852768d00ce7a53f88f",
+      "name": "chore(projet): Créer le gitjournal",
+      "description": "C'était pas si dur...",
+      "date": "2026-01-21T07:40:14Z",
+      "duration": 15,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/3fe248a99b02523e7de63852768d00ce7a53f88f"
+    },
+    {
+      "sha": "a2d8aa9371d213810e3f726411382dea3b8af204",
+      "name": "feat(electron): Allow use without Git",
+      "description": "",
+      "date": "2026-01-04T11:16:47Z",
+      "duration": 15,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/a2d8aa9371d213810e3f726411382dea3b8af204"
+    },
+    {
+      "sha": "2a18fc9794d5cc30c9d2bc892a8d3fb3f02a499e",
+      "name": "feat(electron): Close all modals on escape",
+      "description": "",
+      "date": "2026-01-04T10:46:01Z",
+      "duration": 5,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/2a18fc9794d5cc30c9d2bc892a8d3fb3f02a499e"
+    },
+    {
+      "sha": "1b292cd4c7bdcb93e85f482c976282d79b765b04",
+      "name": "feat(electron): Finalize first version of help",
+      "description": "",
+      "date": "2026-01-04T10:41:02Z",
+      "duration": 30,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/1b292cd4c7bdcb93e85f482c976282d79b765b04"
+    },
+    {
+      "sha": "508d48c38b09798bd49e05da03d437427c80bdf8",
+      "name": "feat(electron): Améliorer le help",
+      "description": "Valider commande CLI",
+      "date": "2026-01-04T10:11:28Z",
+      "duration": 15,
+      "status": "WIP",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/508d48c38b09798bd49e05da03d437427c80bdf8"
+    },
+    {
+      "sha": "61e49a033d363e1f98a142566c756bbe77ed3df0",
+      "name": "feat(electron): Add Help",
+      "description": "Testing refresh",
+      "date": "2026-01-04T09:42:24Z",
+      "duration": 30,
+      "status": "WIP",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/61e49a033d363e1f98a142566c756bbe77ed3df0"
+    },
+    {
+      "sha": "0faa36d701e75842d22b62e75715ca07c1877d80",
+      "name": "feat(htmljournal): Add filtering",
+      "description": "On name and date",
+      "date": "2025-04-28T13:47:10Z",
+      "duration": 30,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/0faa36d701e75842d22b62e75715ca07c1877d80"
+    },
+    {
+      "sha": "a63889e12d197030c0f6f1402f0568482a4bcc3d",
+      "name": "feat(snake): Afficher la tête",
+      "description": "",
+      "date": "2024-11-22T11:37:09Z",
+      "duration": 30,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/a63889e12d197030c0f6f1402f0568482a4bcc3d"
+    },
+    {
+      "sha": "9b2b2ba488af77c5f747b9c7154fd0c6bf33a6c3",
+      "name": "feat(jsjournal): Handle error cases",
+      "description": "Correction d'heure",
+      "date": "2024-11-20T15:03:42Z",
+      "duration": 15,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/9b2b2ba488af77c5f747b9c7154fd0c6bf33a6c3"
+    },
+    {
+      "sha": "ed9fa4e4bce308fa389d5b01c07ff9bd70e82d91",
+      "name": "feat(jsjournal): Handle error cases",
+      "description": "Correction d'heure",
+      "date": "2024-11-20T15:03:42Z",
+      "duration": 15,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/ed9fa4e4bce308fa389d5b01c07ff9bd70e82d91"
+    },
+    {
+      "sha": "7342a7adcbfaa205102d198886b873b561c6dc3e",
+      "name": "feat(jsjournal): Handle error cases",
+      "description": "Corrections des heures",
+      "date": "2024-11-20T15:01:05Z",
+      "duration": 15,
+      "status": "DONE",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/7342a7adcbfaa205102d198886b873b561c6dc3e"
+    },
+    {
+      "sha": "1c461132f6531d48cc1c98e5144ddbd9600aed18",
+      "name": "commit08",
+      "description": "Après merge de pull request",
+      "date": "2026-03-06T10:20:17Z",
+      "duration": 3,
+      "status": "done",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/1c461132f6531d48cc1c98e5144ddbd9600aed18"
+    },
+    {
+      "sha": "0b3e333264243104228e04248a86626e163085df",
+      "name": "commit07",
+      "description": "sur branche 2",
+      "date": "2026-03-06T10:15:43Z",
+      "duration": 2,
+      "status": "done",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/0b3e333264243104228e04248a86626e163085df"
+    },
+    {
+      "sha": "22e2b8eeb8e2119566542cf93028ef91fb0f3744",
+      "name": "commit06",
+      "description": "sur branche2",
+      "date": "2026-03-06T10:13:49Z",
+      "duration": 3,
+      "status": "done",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/22e2b8eeb8e2119566542cf93028ef91fb0f3744"
+    },
+    {
+      "sha": "3492b40274382973a1dcfe9bcdf7b1cdb8790409",
+      "name": "commit05 sur test_branche2...",
+      "description": "",
+      "date": "2026-03-06T10:11:18Z",
+      "duration": 8,
+      "status": "done",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/3492b40274382973a1dcfe9bcdf7b1cdb8790409"
+    },
+    {
+      "sha": "91c649b144805fdcb9d923269375124515e2f225",
+      "name": "commit04",
+      "description": "",
+      "date": "2026-03-06T10:02:15Z",
+      "duration": 2,
+      "status": "",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/91c649b144805fdcb9d923269375124515e2f225"
+    },
+    {
+      "sha": "ddc9ba2a3879384dedcb81889498f965359dbbb7",
+      "name": "commit03",
+      "description": "",
+      "date": "2026-03-06T09:58:16Z",
+      "duration": 5,
+      "status": "done",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/ddc9ba2a3879384dedcb81889498f965359dbbb7"
+    },
+    {
+      "sha": "33625bdc956fc2f064a4bc9aa7dc0d5c09e5f820",
+      "name": "Commit02",
+      "description": "",
+      "date": "2026-03-06T09:51:24Z",
+      "duration": 5,
+      "status": "Done",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/33625bdc956fc2f064a4bc9aa7dc0d5c09e5f820"
+    },
+    {
+      "sha": "73f80ee263ad39c6c8460110f8493798516f7b2f",
+      "name": "commit01",
+      "description": "",
+      "date": "2026-03-06T09:48:26Z",
+      "duration": 5,
+      "status": "WIP",
+      "author": "XCarrel",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/73f80ee263ad39c6c8460110f8493798516f7b2f"
+    }
+  ],
+  "lastSync": "2026-04-09T10:35:39.026Z"
 }

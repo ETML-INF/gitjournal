@@ -20,6 +20,10 @@ export async function loadProject(filePath) {
   // Valider la structure
   validateProject(project);
 
+  // Migration : ajouter les nouveaux champs si absents (fichiers créés avant v2)
+  if (!Array.isArray(project.commits)) project.commits = [];
+  if (!('lastSync' in project)) project.lastSync = null;
+
   return project;
 }
 
@@ -80,9 +84,10 @@ export function createNewProject() {
   return {
     repoUrl: "",
     projectName: "",
-    branch: "main",
     me: "",
     journalStartDate: null,
+    lastSync: null,
+    commits: [],
     exceptions: []
   };
 }
@@ -148,7 +153,8 @@ export function validateProject(projectData) {
   }
 
   // Les champs peuvent être vides mais doivent exister
-  const requiredFields = ['repoUrl', 'projectName', 'branch', 'me', 'exceptions'];
+  // Note: 'branch' est conservé pour la rétrocompatibilité mais n'est plus requis
+  const requiredFields = ['repoUrl', 'projectName', 'me', 'exceptions'];
   for (const field of requiredFields) {
     if (!(field in projectData)) {
       throw new Error(`Invalid project: missing field '${field}'`);
@@ -164,6 +170,18 @@ export function validateProject(projectData) {
   if ('journalStartDate' in projectData) {
     if (projectData.journalStartDate !== null && typeof projectData.journalStartDate !== 'string') {
       throw new Error('Invalid project: journalStartDate must be null or a string');
+    }
+  }
+
+  // commits est optionnel (ajouté par migration si absent)
+  if ('commits' in projectData && !Array.isArray(projectData.commits)) {
+    throw new Error('Invalid project: commits must be an array');
+  }
+
+  // lastSync est optionnel mais doit être null ou une string ISO si présent
+  if ('lastSync' in projectData) {
+    if (projectData.lastSync !== null && typeof projectData.lastSync !== 'string') {
+      throw new Error('Invalid project: lastSync must be null or a string');
     }
   }
 }
