@@ -336,4 +336,7 @@
   const pullBtn = document.getElementById("pullBtn");
   if (fetchBtn) fetchBtn.onclick = window.doFetch;
   if (pullBtn) pullBtn.onclick = window.doPull;
+
+  // Fetch automatique au démarrage
+  if (fetchBtn) window.doFetch();
 </script>
