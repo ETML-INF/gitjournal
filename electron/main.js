@@ -492,7 +492,6 @@ function createApplicationMenu() {
       label: "Affichage",
       submenu: [
         { role: "reload", label: "Actualiser" },
-        { role: "forceReload", label: "Forcer l'actualisation" },
         { type: "separator" },
         { role: "resetZoom", label: "Zoom par défaut" },
         { role: "zoomIn", label: "Zoom avant" },
