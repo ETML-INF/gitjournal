@@ -372,10 +372,6 @@ function createMainWindow() {
     }
   });
 
-  mainWindow.on("focus", () => {
-    mainWindow.reload();
-  });
-
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
