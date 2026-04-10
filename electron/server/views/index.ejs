@@ -1,20 +1,4 @@
 <main id="mainContent">
-  <!-- Barre de synchronisation -->
-  <% if (owner && repo) { %>
-  <div id="syncBar" class="no-print" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem;">
-    <span style="color: #555;">
-      <% if (lastSyncFormatted) { %>
-        Dernière sync&nbsp;: <strong><%= lastSyncFormatted %></strong>
-      <% } else { %>
-        <em style="color:#c0392b;">Jamais synchronisé — faites un Pull pour charger les commits</em>
-      <% } %>
-    </span>
-    <button id="fetchBtn" style="padding: 0.25rem 0.75rem; border: 1px solid #aaa; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem;">Fetch</button>
-    <button id="pullBtn" style="padding: 0.25rem 0.75rem; border: 1px solid #aaa; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem;">Pull</button>
-    <span id="syncMsg" style="display: none; color: #555; font-style: italic;"></span>
-  </div>
-  <% } %>
-
   <div
     id="divStatsButton"
     class="topButton no-print"
@@ -271,72 +255,4 @@
     }
   });
 
-  // === Synchronisation Fetch / Pull ===
-
-  const syncMsg = document.getElementById("syncMsg");
-
-  function setSyncMsg(text, color) {
-    if (!syncMsg) return;
-    syncMsg.textContent = text;
-    syncMsg.style.color = color || "#555";
-    syncMsg.style.display = text ? "inline" : "none";
-  }
-
-  window.doFetch = async function doFetch() {
-    const btn = document.getElementById("fetchBtn");
-    if (!btn) return;
-    btn.disabled = true;
-    setSyncMsg("Fetch en cours…", "#555");
-    try {
-      const r = await fetch("/fetch");
-      const data = await r.json();
-      if (data.error) {
-        setSyncMsg("Erreur : " + data.error, "#c0392b");
-      } else if (data.newCount === 0) {
-        setSyncMsg("Déjà à jour.", "#27ae60");
-      } else {
-        setSyncMsg(
-          data.newCount + " nouveau" + (data.newCount > 1 ? "x" : "") + " commit" + (data.newCount > 1 ? "s" : "") + " disponible" + (data.newCount > 1 ? "s" : "") + ". Faites un Pull pour les récupérer.",
-          "#e67e22"
-        );
-      }
-    } catch (e) {
-      setSyncMsg("Erreur : " + e.message, "#c0392b");
-    } finally {
-      btn.disabled = false;
-    }
-  };
-
-  window.doPull = async function doPull() {
-    const btn = document.getElementById("pullBtn");
-    if (!btn) return;
-    btn.disabled = true;
-    setSyncMsg("Pull en cours…", "#555");
-    try {
-      const r = await fetch("/pull", { method: "POST" });
-      const data = await r.json();
-      if (data.error) {
-        setSyncMsg("Erreur : " + data.error, "#c0392b");
-        btn.disabled = false;
-      } else {
-        const msg = data.added === 0
-          ? "Déjà à jour. Actualisation…"
-          : data.added + " commit" + (data.added > 1 ? "s" : "") + " ajouté" + (data.added > 1 ? "s" : "") + ". Actualisation…";
-        setSyncMsg(msg, "#27ae60");
-        setTimeout(() => window.location.reload(), 800);
-      }
-    } catch (e) {
-      setSyncMsg("Erreur : " + e.message, "#c0392b");
-      btn.disabled = false;
-    }
-  };
-
-  // Boutons dans la barre
-  const fetchBtn = document.getElementById("fetchBtn");
-  const pullBtn = document.getElementById("pullBtn");
-  if (fetchBtn) fetchBtn.onclick = window.doFetch;
-  if (pullBtn) pullBtn.onclick = window.doPull;
-
-  // Fetch automatique au démarrage
-  if (fetchBtn) window.doFetch();
 </script>

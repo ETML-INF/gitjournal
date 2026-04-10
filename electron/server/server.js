@@ -1,7 +1,8 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import fetch from "node-fetch";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import expressLayouts from "express-ejs-layouts";
 import crypto from "crypto";
 import { VERSION as APP_VERSION } from '../version.js';
@@ -9,13 +10,13 @@ import { groom } from './lib/commit-parser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const execFileAsync = promisify(execFile);
 
 const app = express();
-const GH = "https://api.github.com";
 
 // Variables globales pour stocker les données du projet en cours
 let currentProject = null;  // Les données du fichier .gitj
-let githubToken = null;     // Le token GitHub
+let currentRepoPath = null; // Chemin vers le dépôt git local
 
 // Callback pour notifier main.js des changements
 let onProjectChangeCallback = null;
@@ -23,17 +24,17 @@ let onProjectChangeCallback = null;
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
-app.set("layout", "layout"); // => views/layout.ejs
+app.set("layout", "layout");
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public"))); // optionnel pour CSS/images
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
 /**
- * Fonction appelée par main.js pour injecter les données du projet
+ * Fonction appelée par main.js pour injecter les données du projet et le chemin du repo
  */
-export function setProjectData(projectData, token) {
+export function setProjectData(projectData, repoPath) {
   currentProject = projectData;
-  githubToken = token;
+  currentRepoPath = repoPath;
 }
 
 /**
@@ -43,12 +44,6 @@ export function onProjectChange(callback) {
   onProjectChangeCallback = callback;
 }
 
-function ghHeaders() {
-  const h = { Accept: "application/vnd.github+json" };
-  if (githubToken) h["Authorization"] = `Bearer ${githubToken}`;
-  return h;
-}
-
 function parseRepoUrl(repoUrl) {
   if (!repoUrl) return {};
   const m = repoUrl.match(/github\.com\/([^/]+)\/([^/#?]+)/i);
@@ -56,70 +51,84 @@ function parseRepoUrl(repoUrl) {
   return { owner: m[1], repo: m[2] };
 }
 
-async function fetchBranches(owner, repo) {
-  const url = `${GH}/repos/${owner}/${repo}/branches?per_page=100`;
-  const r = await fetch(url, { headers: ghHeaders() });
-  if (!r.ok) throw new Error(`GitHub branches error ${r.status}`);
-  const data = await r.json();
-  return data.map((b) => b.name);
-}
-
 /**
- * Récupère les commits d'une branche donnée depuis une date (optionnel),
- * filtré par auteur (optionnel).
+ * Lit les commits depuis le dépôt git local via `git log`.
+ * Filtre par auteur (--author=me) et par date de début (--after=since).
+ * Parcourt toutes les branches (--all) et déduplique par SHA.
  */
-async function fetchCommitsForBranch({ owner, repo, branch, since, author }) {
-  const perPage = 100;
-  let page = 1;
-  let all = [];
-  let keep = true;
-  while (keep) {
-    const params = new URLSearchParams({ sha: branch, per_page: `${perPage}`, page: `${page}` });
-    if (since) params.set("since", since);
-    if (author) params.set("author", author);
-    const url = `${GH}/repos/${owner}/${repo}/commits?${params}`;
-    const r = await fetch(url, { headers: ghHeaders() });
-    if (!r.ok) {
-      let errorMsg = '';
-      if (r.status === 401) {
-        errorMsg = 'Token GitHub invalide ou expiré. Veuillez vérifier votre token dans Préférences.';
-      } else if (r.status === 404) {
-        errorMsg = `Repository "${owner}/${repo}" non trouvé. Vérifiez l'URL du repository ou que vous avez accès à ce repository.`;
-      } else if (r.status === 403) {
-        errorMsg = 'Limite de taux GitHub dépassée ou accès refusé. Vérifiez votre token GitHub.';
-      } else {
-        errorMsg = `Erreur GitHub API (${r.status}): ${r.statusText}`;
-      }
-      throw new Error(errorMsg);
+async function readLocalCommits(repoPath, me, since, repoUrl) {
+  // Séparateurs qui n'apparaissent pas dans les messages de commit
+  const FIELD_SEP = '\x1e'; // ASCII 30
+  const COMMIT_SEP = '\x1d'; // ASCII 29
+
+  // %B = message complet (sujet + corps)
+  const fmt = `%H${FIELD_SEP}%an${FIELD_SEP}%ad${FIELD_SEP}%B${COMMIT_SEP}`;
+
+  const args = [
+    '-C', repoPath,
+    'log',
+    '--all',
+    '--no-merges',
+    `--author=${me}`,
+    '--date=iso-strict',
+    `--format=format:${fmt}`
+  ];
+
+  if (since) args.push(`--after=${since}`);
+
+  let stdout;
+  try {
+    ({ stdout } = await execFileAsync('git', args, { maxBuffer: 50 * 1024 * 1024 }));
+  } catch (e) {
+    if (e.code === 'ENOENT') throw new Error("Git n'est pas installé ou introuvable dans le PATH");
+    const stderr = e.stderr || '';
+    if (stderr.includes('not a git repository')) {
+      throw new Error("Le dossier du projet n'est pas un dépôt Git");
     }
-    const batch = await r.json();
-    all = all.concat(batch);
-    keep = batch.length === perPage;
-    page++;
+    if (stderr.includes('unknown revision')) {
+      return []; // Repo vide ou aucun commit encore
+    }
+    throw new Error(`Erreur git log : ${e.message}`);
   }
-  return all;
-}
 
-/**
- * Récupère tous les commits de toutes les branches, dédupliqués par SHA,
- * filtrés par auteur. Utilisé pour fetch et pull.
- */
-async function fetchAllBranchesCommits({ owner, repo, me, since }) {
-  const branches = await fetchBranches(owner, repo);
+  if (!stdout.trim()) return [];
+
+  const baseUrl = repoUrl ? repoUrl.replace(/\/+$/, '') : '';
   const seenShas = new Set();
-  const allCommits = [];
+  const commits = [];
 
-  for (const branch of branches) {
-    const commits = await fetchCommitsForBranch({ owner, repo, branch, since, author: me });
-    for (const c of commits) {
-      if (!seenShas.has(c.sha)) {
-        seenShas.add(c.sha);
-        allCommits.push(c);
-      }
-    }
+  for (const record of stdout.split(COMMIT_SEP)) {
+    const trimmed = record.trim();
+    if (!trimmed) continue;
+
+    const parts = trimmed.split(FIELD_SEP);
+    if (parts.length < 4) continue;
+
+    const sha = parts[0].trim();
+    const authorName = parts[1].trim();
+    const date = parts[2].trim();
+    // Le message est tout ce qui suit (réassemblé au cas où il contiendrait FIELD_SEP)
+    const message = parts.slice(3).join(FIELD_SEP).trim();
+
+    if (!sha || sha.length < 7) continue;
+    if (seenShas.has(sha)) continue;
+    seenShas.add(sha);
+
+    const url = baseUrl ? `${baseUrl}/commit/${sha}` : '';
+
+    // Construit un objet compatible avec groom()
+    commits.push({
+      sha,
+      commit: {
+        message,
+        author: { date, name: authorName }
+      },
+      author: { login: authorName },
+      html_url: url
+    });
   }
 
-  return allCommits;
+  return commits;
 }
 
 function totalDuration(commits) {
@@ -129,47 +138,35 @@ function totalDuration(commits) {
   return { minutes: mins, h, m };
 }
 
-// helpers de format
 const fmtDayLabel = (d) =>
   new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "2-digit", month: "short", year: "numeric" }).format(new Date(d));
 
-const toDayKey = (isoLike) => new Date(isoLike).toISOString().slice(0, 10); // "YYYY-MM-DD"
+const toDayKey = (isoLike) => new Date(isoLike).toISOString().slice(0, 10);
 
 const sumMinutes = (items) => items.reduce((acc, c) => acc + (c.duration || 0), 0);
 
-// entries: [{ date: ISO, duration: minutes, ... }]
 function groupByDay(entries) {
-  // assure l'ordre chronologique croissant (ou inverse si tu préfères)
   const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  const groupsMap = new Map(); // préserve l'ordre d'insertion
+  const groupsMap = new Map();
   for (const c of sorted) {
     const key = toDayKey(c.date);
     if (!groupsMap.has(key)) groupsMap.set(key, []);
     groupsMap.get(key).push(c);
   }
-
-  // transforme en array de groupes avec label + totals
   const groups = [];
   for (const [day, commits] of groupsMap.entries()) {
     const minutes = sumMinutes(commits);
     groups.push({
-      day, // "2025-01-10"
-      label: fmtDayLabel(day), // "10 janv. 2025"
+      day,
+      label: fmtDayLabel(day),
       commits,
-      total: {
-        minutes,
-        h: Math.floor(minutes / 60),
-        m: minutes % 60
-      }
+      total: { minutes, h: Math.floor(minutes / 60), m: minutes % 60 }
     });
   }
   return groups;
 }
 
-// === Validation ===
 function validateException(x) {
-  // minimal: name, date (ISO), duration en minutes
   if (!x || typeof x !== "object") return "Objet invalide";
   if (!x.name) return "Champ 'name' requis";
   if (!x.date || isNaN(new Date(x.date))) return "Champ 'date' invalide (ISO attendu)";
@@ -177,82 +174,61 @@ function validateException(x) {
   return null;
 }
 
-// Page d'accueil — utilise le cache local, pas d'appel GitHub
+// Page principale — lit les commits depuis le dépôt git local
 app.get(["/", "/jdt"], async (req, res) => {
   try {
-    // Vérifier qu'un projet est ouvert
     if (!currentProject) {
       return res.render('no-project', {
         message: 'Aucun projet ouvert. Utilisez Fichier > Ouvrir ou Nouveau projet.'
       });
     }
 
-    const { repoUrl, projectName, me, journalStartDate, lastSync } = currentProject;
+    const { repoUrl, projectName, me, journalStartDate } = currentProject;
     const { owner, repo } = parseRepoUrl(repoUrl);
 
     const since = journalStartDate
       ? new Intl.DateTimeFormat("fr-FR", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric"
+          day: "2-digit", month: "short", year: "numeric"
         }).format(new Date(journalStartDate))
       : null;
 
-    // Commits depuis le cache local (déjà filtrés par auteur lors du pull)
-    const localCommits = currentProject.commits || [];
-
-    // Filtrer par journalStartDate pour l'affichage
-    const sinceDate = journalStartDate ? new Date(journalStartDate) : null;
-    let myEntries = sinceDate
-      ? localCommits.filter((c) => new Date(c.date) >= sinceDate)
-      : [...localCommits];
-
-    const commitStats = {
-      cached: localCommits.length,
-      displayed: myEntries.length,
+    let myEntries = [];
+    let commitStats = {
+      fromGit: 0,
       afterExclusions: 0,
       manualEntries: 0,
       total: 0
     };
 
-    // Utiliser les exceptions du projet au lieu de lire depuis JSON
+    if (currentRepoPath) {
+      const raw = await readLocalCommits(currentRepoPath, me, journalStartDate, repoUrl);
+      myEntries = raw.map(groom).filter((c) => c.duration > 0);
+      commitStats.fromGit = myEntries.length;
+    }
+
     const exc = currentProject.exceptions || [];
 
-    // Filtrer les commits exclus
     const excludedShas = new Set(
       exc.filter((e) => e.excluded === true).map((e) => (e.sha || "").toLowerCase().trim())
     );
     const notExcluded = myEntries.filter((e) => !excludedShas.has((e.sha || "").toLowerCase().trim()));
     commitStats.afterExclusions = notExcluded.length;
 
-    // Remplacer les commits par leurs exceptions
     const keyOf = (x) => (x.sha || x.id || "").toLowerCase().trim();
     const excByKey = new Map(exc.map((x) => [keyOf(x), x]));
     const patched = notExcluded.map((e) => {
       const repl = excByKey.get(keyOf(e));
-      if (repl && !repl.excluded) {
-        return repl; // remplace si une exception existe (et n'est pas exclue)
-      }
+      if (repl && !repl.excluded) return repl;
       return e;
     });
 
-    // Ajouter les entrées "commitless"
     const manualEntries = exc.filter((e) => e.type == "commitless");
     commitStats.manualEntries = manualEntries.length;
     const allEntriesReady = patched.concat(manualEntries);
     commitStats.total = allEntriesReady.length;
 
-    // Grouper + totaux
     const groups = groupByDay(allEntriesReady);
     const totals = totalDuration(allEntriesReady);
-
-    // Formater lastSync pour l'affichage
-    const lastSyncFormatted = lastSync
-      ? new Intl.DateTimeFormat("fr-FR", {
-          day: "2-digit", month: "short", year: "numeric",
-          hour: "2-digit", minute: "2-digit"
-        }).format(new Date(lastSync))
-      : null;
 
     return res.render("index", {
       defaultRepoUrl: repoUrl,
@@ -261,117 +237,30 @@ app.get(["/", "/jdt"], async (req, res) => {
       since,
       groups,
       totals,
-      projectName: projectName || repo,
+      projectName: projectName || repo || me,
       me,
       appVersion: APP_VERSION,
-      commitStats,
-      lastSync: lastSync || null,
-      lastSyncFormatted
+      commitStats
     });
   } catch (e) {
     console.error('Erreur lors du chargement du journal:', e.message);
 
     let errorType = 'generic';
-    if (e.message.includes('Token GitHub invalide') || e.message.includes('401')) {
-      errorType = 'github_token';
-    } else if (e.message.includes('non trouvé') || e.message.includes('404')) {
-      errorType = 'github_repo';
-    }
+    if (e.message.includes("n'est pas un dépôt Git")) errorType = 'not_git_repo';
+    if (e.message.includes("Git n'est pas installé")) errorType = 'git_missing';
 
     return res.status(500).render("error", {
       errorMessage: e.message,
-      errorType: errorType,
+      errorType,
       repoUrl: currentProject?.repoUrl || 'N/A'
     });
-  }
-});
-
-// GET /fetch — vérifie si de nouveaux commits sont disponibles en amont (sans modifier le cache)
-app.get("/fetch", async (req, res) => {
-  try {
-    if (!currentProject) {
-      return res.status(400).json({ error: 'Aucun projet ouvert' });
-    }
-
-    const { repoUrl, me, lastSync, journalStartDate } = currentProject;
-    const { owner, repo } = parseRepoUrl(repoUrl);
-
-    if (!owner || !repo) {
-      return res.status(400).json({ error: 'URL du dépôt invalide ou manquante' });
-    }
-
-    const since = lastSync || journalStartDate || null;
-    const remoteCommits = await fetchAllBranchesCommits({ owner, repo, me, since });
-
-    // Compter les commits pas encore dans le cache local
-    const localShas = new Set((currentProject.commits || []).map((c) => c.sha));
-    const newCommits = remoteCommits.filter((c) => !localShas.has(c.sha));
-
-    return res.json({
-      newCount: newCommits.length,
-      lastSync: lastSync || null
-    });
-  } catch (e) {
-    console.error('Erreur fetch:', e.message);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-// POST /pull — télécharge les nouveaux commits et met à jour le cache local
-app.post("/pull", async (req, res) => {
-  try {
-    if (!currentProject) {
-      return res.status(400).json({ error: 'Aucun projet ouvert' });
-    }
-
-    const { repoUrl, me, lastSync, journalStartDate } = currentProject;
-    const { owner, repo } = parseRepoUrl(repoUrl);
-
-    if (!owner || !repo) {
-      return res.status(400).json({ error: 'URL du dépôt invalide ou manquante' });
-    }
-
-    const since = lastSync || journalStartDate || null;
-    const rawCommits = await fetchAllBranchesCommits({ owner, repo, me, since });
-
-    // Initialiser le tableau si absent (fichiers migrés)
-    if (!Array.isArray(currentProject.commits)) currentProject.commits = [];
-
-    // Dédupliquer par SHA avec le cache existant
-    const localShas = new Set(currentProject.commits.map((c) => c.sha));
-
-    // Transformer, filtrer les commits sans durée, et dédupliquer
-    const newGroomed = rawCommits
-      .filter((c) => !localShas.has(c.sha))
-      .map(groom)
-      .filter((c) => c.duration > 0);
-
-    // Ajouter au cache
-    currentProject.commits = currentProject.commits.concat(newGroomed);
-    currentProject.lastSync = new Date().toISOString();
-
-    // Notifier main.js pour la sauvegarde automatique
-    if (onProjectChangeCallback) {
-      onProjectChangeCallback(currentProject);
-    }
-
-    return res.json({
-      added: newGroomed.length,
-      total: currentProject.commits.length,
-      lastSync: currentProject.lastSync
-    });
-  } catch (e) {
-    console.error('Erreur pull:', e.message);
-    return res.status(500).json({ error: e.message });
   }
 });
 
 // POST créer une exception
 app.post("/add", async (req, res) => {
   try {
-    if (!currentProject) {
-      return res.status(400).json({ error: 'Aucun projet ouvert' });
-    }
+    if (!currentProject) return res.status(400).json({ error: 'Aucun projet ouvert' });
 
     const err = validateException(req.body);
     if (err) return res.status(400).json({ error: err });
@@ -386,11 +275,7 @@ app.post("/add", async (req, res) => {
       patchExistingException(req.body);
     }
 
-    // Notifier main.js que le projet a changé
-    if (onProjectChangeCallback) {
-      onProjectChangeCallback(currentProject);
-    }
-
+    if (onProjectChangeCallback) onProjectChangeCallback(currentProject);
     return res.redirect("/jdt");
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -400,41 +285,24 @@ app.post("/add", async (req, res) => {
 // POST exclure un commit
 app.post("/exclude", async (req, res) => {
   try {
-    if (!currentProject) {
-      return res.status(400).json({ error: 'Aucun projet ouvert' });
-    }
+    if (!currentProject) return res.status(400).json({ error: 'Aucun projet ouvert' });
 
     const { sha } = req.body;
+    if (!sha || sha === "-") return res.status(400).json({ error: 'SHA invalide' });
 
-    if (!sha || sha === "-") {
-      return res.status(400).json({ error: 'SHA invalide' });
-    }
+    if (!currentProject.exceptions) currentProject.exceptions = [];
 
-    if (!currentProject.exceptions) {
-      currentProject.exceptions = [];
-    }
-
-    // Vérifier si le commit n'est pas déjà exclu
     const existing = currentProject.exceptions.find(
       (e) => e.sha && e.sha.toLowerCase().trim() === sha.toLowerCase().trim()
     );
 
     if (existing) {
-      // Marquer comme exclu
       existing.excluded = true;
     } else {
-      // Créer une nouvelle exception d'exclusion
-      currentProject.exceptions.push({
-        sha: sha,
-        excluded: true
-      });
+      currentProject.exceptions.push({ sha, excluded: true });
     }
 
-    // Notifier main.js que le projet a changé
-    if (onProjectChangeCallback) {
-      onProjectChangeCallback(currentProject);
-    }
-
+    if (onProjectChangeCallback) onProjectChangeCallback(currentProject);
     return res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -444,34 +312,18 @@ app.post("/exclude", async (req, res) => {
 // POST supprimer une entrée manuelle
 app.post("/delete", async (req, res) => {
   try {
-    if (!currentProject) {
-      return res.status(400).json({ error: 'Aucun projet ouvert' });
-    }
+    if (!currentProject) return res.status(400).json({ error: 'Aucun projet ouvert' });
 
     const { exceptionId } = req.body;
+    if (!exceptionId || exceptionId === "-") return res.status(400).json({ error: "ID d'exception invalide" });
+    if (!currentProject.exceptions) return res.status(404).json({ error: 'Entrée non trouvée' });
 
-    if (!exceptionId || exceptionId === "-") {
-      return res.status(400).json({ error: 'ID d\'exception invalide' });
-    }
-
-    if (!currentProject.exceptions) {
-      return res.status(404).json({ error: 'Entrée non trouvée' });
-    }
-
-    // Trouver et supprimer l'entrée
     const index = currentProject.exceptions.findIndex((e) => e.id === exceptionId);
-
-    if (index === -1) {
-      return res.status(404).json({ error: 'Entrée non trouvée' });
-    }
+    if (index === -1) return res.status(404).json({ error: 'Entrée non trouvée' });
 
     currentProject.exceptions.splice(index, 1);
 
-    // Notifier main.js que le projet a changé
-    if (onProjectChangeCallback) {
-      onProjectChangeCallback(currentProject);
-    }
-
+    if (onProjectChangeCallback) onProjectChangeCallback(currentProject);
     return res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -479,10 +331,7 @@ app.post("/delete", async (req, res) => {
 });
 
 function patchExistingException(ex) {
-  if (!currentProject.exceptions) {
-    currentProject.exceptions = [];
-  }
-
+  if (!currentProject.exceptions) currentProject.exceptions = [];
   const existing = currentProject.exceptions.find((e) => e.id == ex.exceptionId);
   if (existing) {
     existing.name = ex.name;
@@ -495,11 +344,8 @@ function patchExistingException(ex) {
 }
 
 function addNewCommitlessEntry(ex) {
-  if (!currentProject.exceptions) {
-    currentProject.exceptions = [];
-  }
-
-  const newentry = {
+  if (!currentProject.exceptions) currentProject.exceptions = [];
+  currentProject.exceptions.push({
     id: crypto.randomUUID(),
     type: "commitless",
     name: ex.name,
@@ -508,16 +354,12 @@ function addNewCommitlessEntry(ex) {
     duration: Number(ex.duration) || 0,
     status: ex.status || "",
     author: currentProject.me
-  };
-  currentProject.exceptions.push(newentry);
+  });
 }
 
 function addNewCommitPatchEntry(ex) {
-  if (!currentProject.exceptions) {
-    currentProject.exceptions = [];
-  }
-
-  const newentry = {
+  if (!currentProject.exceptions) currentProject.exceptions = [];
+  currentProject.exceptions.push({
     id: crypto.randomUUID(),
     type: "commitpatch",
     sha: ex.sha,
@@ -529,10 +371,7 @@ function addNewCommitPatchEntry(ex) {
     status: ex.status || "Done",
     author: ex.author || "?",
     patch: true
-  };
-  currentProject.exceptions.push(newentry);
+  });
 }
 
-// Exporter l'app Express au lieu de l'écouter ici
-// C'est main.js qui le fera
 export { app };

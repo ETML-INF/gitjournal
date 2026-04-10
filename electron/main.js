@@ -4,8 +4,6 @@ import { fileURLToPath } from "url";
 import { app as expressApp, setProjectData, onProjectChange } from "./server/server.js";
 import {
   initSettingsPath,
-  getGithubToken,
-  setGithubToken,
   getLastOpenedFile,
   setLastOpenedFile
 } from "./server/lib/settings-manager.js";
@@ -56,9 +54,8 @@ async function openProject(filePath) {
     currentProjectData = projectData;
     await setLastOpenedFile(filePath);
 
-    // Injecter les données dans le serveur Express
-    const token = await getGithubToken();
-    setProjectData(projectData, token);
+    // Injecter les données dans le serveur Express (repoPath = dossier du fichier .gitj)
+    setProjectData(projectData, path.dirname(filePath));
 
     // Mettre à jour le titre de la fenêtre
     if (mainWindow) {
@@ -318,22 +315,6 @@ function setupIpcHandlers() {
     return await createProjectWithConfig(config);
   });
 
-  ipcMain.handle("get-github-token", async () => {
-    return await getGithubToken();
-  });
-
-  ipcMain.handle("set-github-token", async (event, token) => {
-    await setGithubToken(token);
-    // Mettre à jour le serveur Express si un projet est ouvert
-    if (currentProjectData) {
-      setProjectData(currentProjectData, token);
-      if (mainWindow) {
-        mainWindow.reload();
-      }
-    }
-    return true;
-  });
-
   ipcMain.handle("open-external", async (event, url) => {
     await shell.openExternal(url);
   });
@@ -389,6 +370,10 @@ function createMainWindow() {
       const title = `Journal de travail - ${currentProjectData.me} - ${currentProjectData.projectName}`;
       mainWindow.setTitle(title);
     }
+  });
+
+  mainWindow.on("focus", () => {
+    mainWindow.reload();
   });
 
   mainWindow.on("closed", () => {
@@ -502,31 +487,6 @@ function createApplicationMenu() {
       ]
     },
 
-    // Menu Synchronisation
-    {
-      label: "Synchronisation",
-      submenu: [
-        {
-          label: "Fetch",
-          accelerator: "CmdOrCtrl+Shift+F",
-          click: () => {
-            if (mainWindow) {
-              mainWindow.webContents.executeJavaScript('window.doFetch && window.doFetch()');
-            }
-          }
-        },
-        {
-          label: "Pull",
-          accelerator: "CmdOrCtrl+Shift+L",
-          click: () => {
-            if (mainWindow) {
-              mainWindow.webContents.executeJavaScript('window.doPull && window.doPull()');
-            }
-          }
-        }
-      ]
-    },
-
     // Menu Affichage
     {
       label: "Affichage",
@@ -587,9 +547,6 @@ app.on("ready", async () => {
     // Initialiser le chemin des settings
     initSettingsPath();
 
-    // Charger le token GitHub
-    const token = await getGithubToken();
-
     // Déterminer quel fichier ouvrir
     let fileToOpen = fileToOpenAtStartup; // Priorité au fichier passé en argument
 
@@ -603,7 +560,7 @@ app.on("ready", async () => {
         const projectData = await loadProject(fileToOpen);
         currentProjectPath = fileToOpen;
         currentProjectData = projectData;
-        setProjectData(projectData, token);
+        setProjectData(projectData, path.dirname(fileToOpen));
       } catch (error) {
         console.log("Could not load project:", error.message);
         // Pas grave, on démarre sans projet

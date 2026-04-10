@@ -3,8 +3,7 @@
     <h2>Statistiques</h2>
     <% if (owner && repo) { %>
     <p style="margin: 0.5rem 0; font-size: 0.9em;">
-      • Commits en cache local : <strong><%= commitStats.cached %></strong><br>
-      • Affichés (après filtre de date) : <strong><%= commitStats.displayed %></strong><br>
+      • Commits lus depuis le dépôt local : <strong><%= commitStats.fromGit %></strong><br>
       • Après exclusions : <strong><%= commitStats.afterExclusions %></strong><br>
       • Entrées manuelles : <strong><%= commitStats.manualEntries %></strong><br>
       <br>

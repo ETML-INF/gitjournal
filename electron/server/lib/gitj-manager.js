@@ -20,9 +20,9 @@ export async function loadProject(filePath) {
   // Valider la structure
   validateProject(project);
 
-  // Migration : ajouter les nouveaux champs si absents (fichiers créés avant v2)
-  if (!Array.isArray(project.commits)) project.commits = [];
-  if (!('lastSync' in project)) project.lastSync = null;
+  // Migration : supprimer les champs de cache obsolètes (v2 → v3, lecture depuis git local)
+  delete project.commits;
+  delete project.lastSync;
 
   return project;
 }
@@ -86,8 +86,6 @@ export function createNewProject() {
     projectName: "",
     me: "",
     journalStartDate: null,
-    lastSync: null,
-    commits: [],
     exceptions: []
   };
 }
@@ -173,15 +171,4 @@ export function validateProject(projectData) {
     }
   }
 
-  // commits est optionnel (ajouté par migration si absent)
-  if ('commits' in projectData && !Array.isArray(projectData.commits)) {
-    throw new Error('Invalid project: commits must be an array');
-  }
-
-  // lastSync est optionnel mais doit être null ou une string ISO si présent
-  if ('lastSync' in projectData) {
-    if (projectData.lastSync !== null && typeof projectData.lastSync !== 'string') {
-      throw new Error('Invalid project: lastSync must be null or a string');
-    }
-  }
 }
