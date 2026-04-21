@@ -255,6 +255,70 @@ async function exportToPDF() {
   }
 }
 
+// === EXPORT CSV ===
+
+async function exportToCSV() {
+  if (!mainWindow) return;
+
+  const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+    title: "Exporter en CSV",
+    defaultPath: `journal-${new Date().toISOString().split("T")[0]}.csv`,
+    filters: [{ name: "CSV", extensions: ["csv"] }]
+  });
+
+  if (canceled || !filePath) return;
+
+  try {
+    const rows = await mainWindow.webContents.executeJavaScript(`
+      (function() {
+        return Array.from(document.querySelectorAll('tbody tr[data-date]')).map(tr => {
+          const cells = tr.querySelectorAll('td');
+          const date = cells[0].innerText.trim();
+          const name = cells[1].innerText.trim();
+          const description = cells[2].innerText.trim();
+          const duration = cells[3].innerText.trim();
+          const status = cells[4].innerText.trim();
+          const author = cells[5].innerText.trim();
+          const parenIdx = name.indexOf('(');
+          const extracted = parenIdx !== -1 ? name.substring(0, parenIdx).trim() : '';
+          return [date, extracted, name, description, duration, status, author];
+        });
+      })()
+    `);
+
+    const csvEscape = (val) => {
+      const s = String(val ?? '');
+      if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+
+    const header = ['Date', 'Tâche (abrégé)', 'Tâche/Commit', 'Description', 'Durée', 'Statut', 'Auteur'];
+    const lines = [header.map(csvEscape).join(',')];
+    for (const row of rows) {
+      lines.push(row.map(csvEscape).join(','));
+    }
+
+    const fs = await import("fs/promises");
+    await fs.writeFile(filePath, '\uFEFF' + lines.join('\r\n'), 'utf8');
+
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Export réussi",
+      message: "Le CSV a été exporté avec succès.",
+      buttons: ["OK", "Ouvrir le fichier"],
+      defaultId: 0
+    });
+
+    if (response === 1) {
+      shell.openPath(filePath);
+    }
+  } catch (error) {
+    dialog.showErrorBox("Erreur d'export", error.message);
+  }
+}
+
 // === FENÊTRE DE SETTINGS ===
 
 let settingsWindow = null;
@@ -442,6 +506,13 @@ function createApplicationMenu() {
           accelerator: "CmdOrCtrl+E",
           click: async () => {
             await exportToPDF();
+          }
+        },
+        {
+          label: "Exporter en CSV",
+          accelerator: "CmdOrCtrl+Shift+E",
+          click: async () => {
+            await exportToCSV();
           }
         },
         {

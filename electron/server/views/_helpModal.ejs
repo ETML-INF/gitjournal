@@ -42,23 +42,19 @@
 
     <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.1rem">Configuration</h3>
     <p style="margin: 0.5rem 0">
-      Bien qu'il soit prévu pour être utilisé en lien avec un repo Git, GitJournal peut également être utilisé sans aucune référence à un repo. 
+      Aucune configuration n'est requise si vous voulez utiliser GitJournal sans référence à un repo.
       <br>
-      Dans ce cas, aucune configuration n'est requise et il suffit de ne pas remplir les champs <code>URL</code> et <code>Nom d'utilisateur</code> lors de la création d'un document.
-    </p>
-
-    <p style="margin: 0.5rem 0">
-      Pour que GitJournal puisse accéder aux commits d'un repo, il faut que l'utilisateur soit authentifié. 
+      Sinon, vous devez renseigner les champs <code>URL</code> et <code>Nom d'utilisateur</code> lors de la création d'un document.
       <br>
-      Un Personnal Access Token (PAT) doit être introduit dans les réglages de l'application.
+      Ces champs vont permettre de sélectionner vos commits (si vous travaillez à plusieurs) et à créer des liens vers les commits.
       <br>
-      Il est nécessaire que le PAT ait une portée (scope) <code>repo</code>.
     </p>
 
     <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.1rem">Format des commits</h3>
     <p style="margin: 0.5rem 0">
-      Pour que GitJournal intègre automatiquement un commit, il faut qu'il puisse extraire la durée et le statut de la tâche à partir de la description du commit.
-      <br>
+      GitJournal récupère les informations de durée et de statut de la tâche à partir des commits du repo local dans lequel le fichier <code>.gitj</code> se trouve.
+    </p>
+    <p style="margin: 0.5rem 0">
       Pour cela, il est nécessaire que le commit soit conforme au format suivant :
     </p>
     <code style="display: block; background: #f5f5f5; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0">
