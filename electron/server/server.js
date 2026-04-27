@@ -5,8 +5,8 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import expressLayouts from "express-ejs-layouts";
 import crypto from "crypto";
-import { VERSION as APP_VERSION } from '../version.js';
-import { groom } from './lib/commit-parser.js';
+import { VERSION as APP_VERSION } from "../version.js";
+import { groom } from "./lib/commit-parser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +15,7 @@ const execFileAsync = promisify(execFile);
 const app = express();
 
 // Variables globales pour stocker les données du projet en cours
-let currentProject = null;  // Les données du fichier .gitj
+let currentProject = null; // Les données du fichier .gitj
 let currentRepoPath = null; // Chemin vers le dépôt git local
 
 // Callback pour notifier main.js des changements
@@ -58,19 +58,20 @@ function parseRepoUrl(repoUrl) {
  */
 async function readLocalCommits(repoPath, me, since, repoUrl) {
   // Séparateurs qui n'apparaissent pas dans les messages de commit
-  const FIELD_SEP = '\x1e'; // ASCII 30
-  const COMMIT_SEP = '\x1d'; // ASCII 29
+  const FIELD_SEP = "\x1e"; // ASCII 30
+  const COMMIT_SEP = "\x1d"; // ASCII 29
 
   // %B = message complet (sujet + corps)
   const fmt = `%H${FIELD_SEP}%an${FIELD_SEP}%ad${FIELD_SEP}%B${COMMIT_SEP}`;
 
   const args = [
-    '-C', repoPath,
-    'log',
-    '--all',
-    '--no-merges',
+    "-C",
+    repoPath,
+    "log",
+    "--all",
+    "--no-merges",
     `--author=${me}`,
-    '--date=iso-strict',
+    "--date=iso-strict",
     `--format=format:${fmt}`
   ];
 
@@ -78,22 +79,14 @@ async function readLocalCommits(repoPath, me, since, repoUrl) {
 
   let stdout;
   try {
-    ({ stdout } = await execFileAsync('git', args, { maxBuffer: 50 * 1024 * 1024 }));
+    ({ stdout } = await execFileAsync("git", args, { maxBuffer: 50 * 1024 * 1024 }));
   } catch (e) {
-    if (e.code === 'ENOENT') throw new Error("Git n'est pas installé ou introuvable dans le PATH");
-    const stderr = e.stderr || '';
-    if (stderr.includes('not a git repository')) {
-      throw new Error("Le dossier du projet n'est pas un dépôt Git");
-    }
-    if (stderr.includes('unknown revision')) {
-      return []; // Repo vide ou aucun commit encore
-    }
-    throw new Error(`Erreur git log : ${e.message}`);
+    return []; // Repo vide ou aucun commit encore
   }
 
   if (!stdout.trim()) return [];
 
-  const baseUrl = repoUrl ? repoUrl.replace(/\/+$/, '') : '';
+  const baseUrl = repoUrl ? repoUrl.replace(/\/+$/, "") : "";
   const seenShas = new Set();
   const commits = [];
 
@@ -114,7 +107,7 @@ async function readLocalCommits(repoPath, me, since, repoUrl) {
     if (seenShas.has(sha)) continue;
     seenShas.add(sha);
 
-    const url = baseUrl ? `${baseUrl}/commit/${sha}` : '';
+    const url = baseUrl ? `${baseUrl}/commit/${sha}` : "";
 
     // Construit un objet compatible avec groom()
     commits.push({
@@ -139,7 +132,9 @@ function totalDuration(commits) {
 }
 
 const fmtDayLabel = (d) =>
-  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "2-digit", month: "short", year: "numeric" }).format(new Date(d));
+  new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "2-digit", month: "short", year: "numeric" }).format(
+    new Date(d)
+  );
 
 const toDayKey = (isoLike) => new Date(isoLike).toISOString().slice(0, 10);
 
@@ -178,8 +173,8 @@ function validateException(x) {
 app.get(["/", "/jdt"], async (req, res) => {
   try {
     if (!currentProject) {
-      return res.render('no-project', {
-        message: 'Aucun projet ouvert. Utilisez Fichier > Ouvrir ou Nouveau projet.'
+      return res.render("no-project", {
+        message: "Aucun projet ouvert. Utilisez Fichier > Ouvrir ou Nouveau projet."
       });
     }
 
@@ -188,7 +183,9 @@ app.get(["/", "/jdt"], async (req, res) => {
 
     const since = journalStartDate
       ? new Intl.DateTimeFormat("fr-FR", {
-          day: "2-digit", month: "short", year: "numeric"
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
         }).format(new Date(journalStartDate))
       : null;
 
@@ -208,9 +205,7 @@ app.get(["/", "/jdt"], async (req, res) => {
 
     const exc = currentProject.exceptions || [];
 
-    const excludedShas = new Set(
-      exc.filter((e) => e.excluded === true).map((e) => (e.sha || "").toLowerCase().trim())
-    );
+    const excludedShas = new Set(exc.filter((e) => e.excluded === true).map((e) => (e.sha || "").toLowerCase().trim()));
     const notExcluded = myEntries.filter((e) => !excludedShas.has((e.sha || "").toLowerCase().trim()));
     commitStats.afterExclusions = notExcluded.length;
 
@@ -243,16 +238,16 @@ app.get(["/", "/jdt"], async (req, res) => {
       commitStats
     });
   } catch (e) {
-    console.error('Erreur lors du chargement du journal:', e.message);
+    console.error("Erreur lors du chargement du journal:", e.message);
 
-    let errorType = 'generic';
-    if (e.message.includes("n'est pas un dépôt Git")) errorType = 'not_git_repo';
-    if (e.message.includes("Git n'est pas installé")) errorType = 'git_missing';
+    let errorType = "generic";
+    if (e.message.includes("n'est pas un dépôt Git")) errorType = "not_git_repo";
+    if (e.message.includes("Git n'est pas installé")) errorType = "git_missing";
 
     return res.status(500).render("error", {
       errorMessage: e.message,
       errorType,
-      repoUrl: currentProject?.repoUrl || 'N/A'
+      repoUrl: currentProject?.repoUrl || "N/A"
     });
   }
 });
@@ -260,7 +255,7 @@ app.get(["/", "/jdt"], async (req, res) => {
 // POST créer une exception
 app.post("/add", async (req, res) => {
   try {
-    if (!currentProject) return res.status(400).json({ error: 'Aucun projet ouvert' });
+    if (!currentProject) return res.status(400).json({ error: "Aucun projet ouvert" });
 
     const err = validateException(req.body);
     if (err) return res.status(400).json({ error: err });
@@ -285,10 +280,10 @@ app.post("/add", async (req, res) => {
 // POST exclure un commit
 app.post("/exclude", async (req, res) => {
   try {
-    if (!currentProject) return res.status(400).json({ error: 'Aucun projet ouvert' });
+    if (!currentProject) return res.status(400).json({ error: "Aucun projet ouvert" });
 
     const { sha } = req.body;
-    if (!sha || sha === "-") return res.status(400).json({ error: 'SHA invalide' });
+    if (!sha || sha === "-") return res.status(400).json({ error: "SHA invalide" });
 
     if (!currentProject.exceptions) currentProject.exceptions = [];
 
@@ -312,14 +307,14 @@ app.post("/exclude", async (req, res) => {
 // POST supprimer une entrée manuelle
 app.post("/delete", async (req, res) => {
   try {
-    if (!currentProject) return res.status(400).json({ error: 'Aucun projet ouvert' });
+    if (!currentProject) return res.status(400).json({ error: "Aucun projet ouvert" });
 
     const { exceptionId } = req.body;
     if (!exceptionId || exceptionId === "-") return res.status(400).json({ error: "ID d'exception invalide" });
-    if (!currentProject.exceptions) return res.status(404).json({ error: 'Entrée non trouvée' });
+    if (!currentProject.exceptions) return res.status(404).json({ error: "Entrée non trouvée" });
 
     const index = currentProject.exceptions.findIndex((e) => e.id === exceptionId);
-    if (index === -1) return res.status(404).json({ error: 'Entrée non trouvée' });
+    if (index === -1) return res.status(404).json({ error: "Entrée non trouvée" });
 
     currentProject.exceptions.splice(index, 1);
 
