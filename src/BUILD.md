@@ -3,8 +3,7 @@
 ## Prérequis
 
 ```bash
-cd electron
-pnpm install   # ou npm install
+pnpm install
 ```
 
 ## Lancer en développement
@@ -31,13 +30,13 @@ pnpm start
 | `pnpm build:win` | Windows (.exe NSIS + portable) |
 | `pnpm build:linux` | Linux (.AppImage + .deb) |
 
-Les artefacts sont générés dans `electron/dist/`.
+Les artefacts sont générés dans `dist/`.
 
 > Les commandes `build` exécutent les tests automatiquement avant de packager.
 
 ## Numéro de version
 
-Modifier `version.js` :
+Modifier `src/version.js` :
 
 ```js
 export const VERSION = "1.x.x";
@@ -47,5 +46,5 @@ export const VERSION = "1.x.x";
 
 ```bash
 pnpm test
-# équivalent : node --test server/server.test.js
+# équivalent : node --test src/server/server.test.js
 ```

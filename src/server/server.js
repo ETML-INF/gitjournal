@@ -51,12 +51,25 @@ function parseRepoUrl(repoUrl) {
   return { owner: m[1], repo: m[2] };
 }
 
+async function getRemoteBaseUrl(repoPath) {
+  try {
+    const { stdout } = await execFileAsync("git", ["-C", repoPath, "remote", "get-url", "origin"], { timeout: 5000 });
+    const remote = stdout.trim();
+    // SSH → HTTPS : git@github.com:user/repo.git → https://github.com/user/repo
+    const sshMatch = remote.match(/git@([^:]+):([^/]+)\/(.+?)(?:\.git)?$/);
+    if (sshMatch) return `https://${sshMatch[1]}/${sshMatch[2]}/${sshMatch[3]}`;
+    return remote.replace(/\.git$/, "").replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Lit les commits depuis le dépôt git local via `git log`.
  * Filtre par auteur (--author=me) et par date de début (--after=since).
  * Parcourt toutes les branches (--all) et déduplique par SHA.
  */
-async function readLocalCommits(repoPath, me, since, repoUrl) {
+async function readLocalCommits(repoPath, me, since, baseUrl) {
   // Séparateurs qui n'apparaissent pas dans les messages de commit
   const FIELD_SEP = "\x1e"; // ASCII 30
   const COMMIT_SEP = "\x1d"; // ASCII 29
@@ -86,7 +99,7 @@ async function readLocalCommits(repoPath, me, since, repoUrl) {
 
   if (!stdout.trim()) return [];
 
-  const baseUrl = repoUrl ? repoUrl.replace(/\/+$/, "") : "";
+  baseUrl = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
   const seenShas = new Set();
   const commits = [];
 
@@ -178,8 +191,9 @@ app.get(["/", "/jdt"], async (req, res) => {
       });
     }
 
-    const { repoUrl, projectName, me, journalStartDate } = currentProject;
-    const { owner, repo } = parseRepoUrl(repoUrl);
+    const { projectName, me, journalStartDate } = currentProject;
+    const remoteBaseUrl = currentRepoPath ? await getRemoteBaseUrl(currentRepoPath) : "";
+    const { owner, repo } = parseRepoUrl(remoteBaseUrl);
 
     const since = journalStartDate
       ? new Intl.DateTimeFormat("fr-FR", {
@@ -198,7 +212,7 @@ app.get(["/", "/jdt"], async (req, res) => {
     };
 
     if (currentRepoPath) {
-      const raw = await readLocalCommits(currentRepoPath, me, journalStartDate, repoUrl);
+      const raw = await readLocalCommits(currentRepoPath, me, journalStartDate, remoteBaseUrl);
       myEntries = raw.map(groom).filter((c) => c.duration > 0);
       commitStats.fromGit = myEntries.length;
     }
@@ -226,7 +240,6 @@ app.get(["/", "/jdt"], async (req, res) => {
     const totals = totalDuration(allEntriesReady);
 
     return res.render("index", {
-      defaultRepoUrl: repoUrl,
       owner,
       repo,
       since,
@@ -246,8 +259,7 @@ app.get(["/", "/jdt"], async (req, res) => {
 
     return res.status(500).render("error", {
       errorMessage: e.message,
-      errorType,
-      repoUrl: currentProject?.repoUrl || "N/A"
+      errorType
     });
   }
 });

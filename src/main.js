@@ -129,12 +129,9 @@ async function createProjectWithConfig(config) {
 
     // Créer le projet avec la configuration fournie
     const projectData = {
-      repoUrl: config.repoUrl,
       projectName: config.projectName,
       me: config.me,
       journalStartDate: config.journalStartDate || null,
-      lastSync: null,
-      commits: [],
       exceptions: []
     };
 

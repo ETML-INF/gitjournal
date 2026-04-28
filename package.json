@@ -2,16 +2,16 @@
   "name": "GitJournal",
   "version": "2.1.1",
   "description": "Journal de travail Git - Application Electron",
-  "main": "main.js",
+  "main": "src/main.js",
   "type": "module",
   "scripts": {
     "start": "electron .",
     "dev": "NODE_ENV=development electron .",
-    "test": "node --test server/server.test.js",
-    "build": "npm test && electron-builder",
-    "build:mac": "npm test && electron-builder --mac",
-    "build:win": "npm test && electron-builder --win",
-    "build:linux": "npm test && electron-builder --linux"
+    "test": "node --test src/server/server.test.js",
+    "build": "pnpm test && electron-builder",
+    "build:mac": "pnpm test && electron-builder --mac",
+    "build:win": "pnpm test && electron-builder --win",
+    "build:linux": "pnpm test && electron-builder --linux"
   },
   "dependencies": {
     "ejs": "^3.1.10",
@@ -27,21 +27,20 @@
     "appId": "com.gitjournal.app",
     "productName": "GitJournal",
     "files": [
-      "main.js",
-      "preload.js",
-      "version.js",
-      "settings.html",
-      "new-project.html",
-      "server/**/*",
-      "assets/**/*",
-      "example.gitj"
+      "src/main.js",
+      "src/preload.js",
+      "src/version.js",
+      "src/settings.html",
+      "src/new-project.html",
+      "src/server/**/*",
+      "src/assets/**/*"
     ],
     "directories": {
       "output": "dist",
-      "buildResources": "assets"
+      "buildResources": "src/assets"
     },
     "mac": {
-      "icon": "assets/icon.icns",
+      "icon": "src/assets/icon.icns",
       "category": "public.app-category.productivity",
       "target": [
         "dmg",
@@ -49,14 +48,14 @@
       ]
     },
     "win": {
-      "icon": "assets/icon.ico",
+      "icon": "src/assets/icon.ico",
       "target": [
         "nsis",
         "portable"
       ]
     },
     "linux": {
-      "icon": "assets/icon.png",
+      "icon": "src/assets/icon.png",
       "target": [
         "AppImage",
         "deb"

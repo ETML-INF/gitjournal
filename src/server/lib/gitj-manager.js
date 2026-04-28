@@ -20,9 +20,10 @@ export async function loadProject(filePath) {
   // Valider la structure
   validateProject(project);
 
-  // Migration : supprimer les champs de cache obsolètes (v2 → v3, lecture depuis git local)
+  // Migration : supprimer les champs obsolètes
   delete project.commits;
   delete project.lastSync;
+  delete project.repoUrl;
 
   return project;
 }
@@ -82,7 +83,6 @@ export async function saveProject(filePath, projectData) {
  */
 export function createNewProject() {
   return {
-    repoUrl: "",
     projectName: "",
     me: "",
     journalStartDate: null,
@@ -152,7 +152,7 @@ export function validateProject(projectData) {
 
   // Les champs peuvent être vides mais doivent exister
   // Note: 'branch' est conservé pour la rétrocompatibilité mais n'est plus requis
-  const requiredFields = ['repoUrl', 'projectName', 'me', 'exceptions'];
+  const requiredFields = ['projectName', 'me', 'exceptions'];
   for (const field of requiredFields) {
     if (!(field in projectData)) {
       throw new Error(`Invalid project: missing field '${field}'`);
