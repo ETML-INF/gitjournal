@@ -13,16 +13,16 @@
   >
     ?
   </div>
-  <header class="print-only">
+  <header>
     <% if (owner && repo) { %>
     <h1>Journal de travail de <%= me %> dans <%= projectName %></h1>
     <% } else { %>
     <h1>Journal de travail de <%= me %> - <%= projectName %></h1>
     <% } %>
+    <% if (since) { %>
+    <p class="muted">Depuis: <strong><%= since %></strong></p>
+    <% } %>
   </header>
-  <% if (since) { %>
-  <p class="muted print-only">Depuis: <strong><%= since %></strong></p>
-  <% } %>
 
   <%
     const durIdx = columns.findIndex(c => c.format === 'duration');
