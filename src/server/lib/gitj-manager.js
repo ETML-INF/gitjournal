@@ -77,6 +77,15 @@ export async function saveProject(filePath, projectData) {
   }
 }
 
+const DEFAULT_COLUMNS = [
+  { label: "Date",        source: "date",        format: "date",     field: "date" },
+  { label: "Tâche",       source: "name",                             field: "name" },
+  { label: "Description", source: "description",                      field: "description" },
+  { label: "Durée",       source: "duration",    format: "duration",  field: "duration" },
+  { label: "Statut",      source: "status",      format: "badge",     field: "status" },
+  { label: "Auteur",      source: "author" }
+];
+
 /**
  * Crée un nouvel objet projet vide
  * @returns {Object} - Un objet projet vide avec les champs par défaut
@@ -86,6 +95,7 @@ export function createNewProject() {
     projectName: "",
     me: "",
     journalStartDate: null,
+    columns: DEFAULT_COLUMNS,
     exceptions: []
   };
 }
@@ -171,4 +181,11 @@ export function validateProject(projectData) {
     }
   }
 
+  if (!Array.isArray(projectData.columns) || projectData.columns.length === 0) {
+    throw new Error(
+      'Ce fichier .gitj ne définit pas de colonnes (requis depuis v2.2.0).\n' +
+      'Ajoutez une propriété "columns" à votre fichier .gitj.\n' +
+      'Consultez doc/gitjournal.gitj pour un exemple complet.'
+    );
+  }
 }

@@ -24,31 +24,40 @@
   <p class="muted print-only">Depuis: <strong><%= since %></strong></p>
   <% } %>
 
+  <%
+    const durIdx = columns.findIndex(c => c.format === 'duration');
+    const leftSpan = durIdx >= 0 ? durIdx : columns.length;
+    const rightSpan = durIdx >= 0 ? columns.length - durIdx : 0;
+  %>
+
   <table>
     <thead>
       <tr>
-        <th>Date</th>
-        <th>Tâche/Commit</th>
-        <th>Description</th>
-        <th class="muted">Durée</th>
-        <th class="muted">Statut</th>
-        <th class="muted">Auteur</th>
+        <% columns.forEach(col => { %>
+        <th><%= col.label %></th>
+        <% }) %>
       </tr>
     </thead>
 
     <tbody>
       <% groups.forEach(g => { %>
-      <!-- lignes du jour -->
       <% g.commits.forEach(c => { %> <%- include('_commitRow', { c }) %> <% }) %>
-      <!-- sous-total du jour -->
       <tr style="background: #fafafa; font-weight: bold">
-        <td colspan="3" style="text-align: right"><%= g.label %></td>
-        <td colspan="3"><%= g.total.h %>h <%= g.total.m %>m</td>
+        <% if (rightSpan > 0) { %>
+        <td colspan="<%= leftSpan %>" style="text-align: right"><%= g.label %></td>
+        <td colspan="<%= rightSpan %>"><%= g.total.h %>h <%= g.total.m %>m</td>
+        <% } else { %>
+        <td colspan="<%= columns.length %>" style="text-align: right"><%= g.label %></td>
+        <% } %>
       </tr>
       <% }) %>
       <tr style="background: #ccc; font-weight: bold">
-        <td colspan="3" style="text-align: right">Total du projet</td>
-        <td colspan="3"><%= totals.h %>h <%= totals.m %>m</td>
+        <% if (rightSpan > 0) { %>
+        <td colspan="<%= leftSpan %>" style="text-align: right">Total du projet</td>
+        <td colspan="<%= rightSpan %>"><%= totals.h %>h <%= totals.m %>m</td>
+        <% } else { %>
+        <td colspan="<%= columns.length %>" style="text-align: right">Total du projet</td>
+        <% } %>
       </tr>
     </tbody>
   </table>
@@ -60,130 +69,98 @@
   <%- include('_editEntry') %> <%- include('_helpModal') %> <%- include('_statsModal') %>
 </main>
 <script>
-  // Input form
+  const EDITABLE_FIELDS = <%- JSON.stringify(columns.filter(c => c.field).map(c => c.field)) %>;
+
+  function getField(name) {
+    return document.getElementById('field_' + name);
+  }
+
   const openBtn = document.getElementById("divAddButton");
   const closeBtn = document.getElementById("closeBtn");
   const overlay = document.getElementById("overlay");
-  const dateInput = document.querySelector('input[name="date"]');
 
   openBtn.onclick = () => {
-    heaInputForm.innerText = "Ajout d'une entrée";
-    txtName.value = "";
-    txtDescription.value = "";
-    numDuration.value = null;
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, "0");
-    datDate.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
-      d.getMinutes()
-    )}`;
+    document.getElementById("heaInputForm").innerText = "Ajout d'une entrée";
+    EDITABLE_FIELDS.forEach(field => {
+      const el = getField(field);
+      if (!el) return;
+      if (field === 'date') {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        el.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } else {
+        el.value = '';
+      }
+    });
     overlay.classList.add("active");
-    hidSHA.value = "-";
-    exceptionId.value = "-";
-    url.value = "-";
-
-    dpdStatus.disabled = false;
-    excludeBtn.style.display = "none"; // Cacher le bouton Exclure pour une nouvelle entrée
-    overlay.classList.add("active");
+    document.getElementById("hidSHA").value = "-";
+    document.getElementById("exceptionId").value = "-";
+    document.getElementById("url").value = "-";
+    document.getElementById("excludeBtn").style.display = "none";
   };
+
   closeBtn.onclick = () => overlay.classList.remove("active");
   overlay.onclick = (e) => {
     if (e.target === overlay) overlay.classList.remove("active");
   };
 
-  saveBtn.onclick = () => {
-    const fd = new FormData(dataForm);
-    const sha = fd.get("sha");
-    if (sha) {
-      let patch = { sha: sha };
-      const patchdescription = fd.get("description");
-      const patchdate = fd.get("date");
-      const patchduration = fd.get("duration");
-      if (patchdescription) patch.description = patchdescription;
-      if (patchdate) patch.date = patchdate;
-      if (patchduration) patch.duration = patchduration;
-      exceptions.push(patch);
-    } else {
-      exceptions.push({
-        patch: true,
-        name: fd.get("name"),
-        description: fd.get("description"),
-        date: new Date(fd.get("date")).toISOString(),
-        duration: Number(fd.get("duration")),
-        status: fd.get("status"),
-        author: repoOwner
-      });
-    }
-    saveData(exceptions);
-    overlay.classList.remove("active");
-  };
-
   document.querySelectorAll("tr").forEach((tr) => {
     tr.addEventListener("click", (e) => {
-      // Don't interfere with link clicks (e.g., GitHub icon)
-      if (e.target.tagName === "A" || e.target.closest("a")) {
-        return;
-      }
-
+      if (e.target.tagName === "A" || e.target.closest("a")) return;
       const row = e.currentTarget;
-      if (!row.dataset.date) return; // Ignore total rows
+      if (!row.dataset.date) return;
 
       e.preventDefault();
-      heaInputForm.innerText = "Modification d'une entrée";
-      const d = new Date(row.dataset.date);
-      const pad = (n) => String(n).padStart(2, "0");
-      datDate.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
-        d.getMinutes()
-      )}`;
-      // Load form fields with entry's current values
-      txtName.value = row.childNodes[3].innerText;
-      txtDescription.value = row.childNodes[5].innerText;
-      numDuration.value = parseInt(row.dataset.duration);
-      overlay.classList.add("active");
-      hidSHA.value = row.dataset.sha;
-      exceptionId.value = row.dataset.exceptionid;
-      url.value = row.dataset.url;
-      dpdStatus.value = row.dataset.status;
-      author.value = row.dataset.author;
+      document.getElementById("heaInputForm").innerText = "Modification d'une entrée";
 
-      // Afficher le bouton Exclure/Supprimer selon le type d'entrée
-      if (row.dataset.sha && row.dataset.sha !== "-") {
-        // C'est un commit - afficher "Exclure"
-        excludeBtn.textContent = "Exclure";
-        excludeBtn.style.display = "block";
-      } else if (row.dataset.exceptionid && row.dataset.exceptionid !== "-") {
-        // C'est une entrée manuelle - afficher "Supprimer"
-        excludeBtn.textContent = "Supprimer";
-        excludeBtn.style.display = "block";
+      EDITABLE_FIELDS.forEach(field => {
+        const el = getField(field);
+        if (!el) return;
+        if (field === 'date') {
+          const d = new Date(row.dataset.date);
+          const pad = n => String(n).padStart(2, '0');
+          el.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        } else if (row.dataset[field] !== undefined) {
+          el.value = row.dataset[field];
+        }
+      });
+
+      overlay.classList.add("active");
+      document.getElementById("hidSHA").value = row.dataset.sha;
+      document.getElementById("exceptionId").value = row.dataset.exceptionid;
+      document.getElementById("url").value = row.dataset.url;
+      document.getElementById("author").value = row.dataset.author;
+
+      const sha = row.dataset.sha;
+      const excId = row.dataset.exceptionid;
+      if (sha && sha !== "-") {
+        document.getElementById("excludeBtn").textContent = "Exclure";
+        document.getElementById("excludeBtn").style.display = "block";
+      } else if (excId && excId !== "-") {
+        document.getElementById("excludeBtn").textContent = "Supprimer";
+        document.getElementById("excludeBtn").style.display = "block";
       } else {
-        excludeBtn.style.display = "none";
+        document.getElementById("excludeBtn").style.display = "none";
       }
     });
   });
 
-  // Exclude/Delete button handler
   const excludeBtn = document.getElementById("excludeBtn");
 
   excludeBtn.onclick = async () => {
-    const sha = hidSHA.value;
-    const exceptionId = document.getElementById("exceptionId").value;
-
-    // Déterminer si c'est un commit ou une entrée manuelle
-    const isManualEntry = exceptionId && exceptionId !== "-";
+    const sha = document.getElementById("hidSHA").value;
+    const excId = document.getElementById("exceptionId").value;
+    const isManualEntry = excId && excId !== "-";
     const isCommit = sha && sha !== "-";
 
     if (isManualEntry) {
-      // Suppression d'une entrée manuelle
-      if (!confirm("Voulez-vous vraiment supprimer cette entrée manuelle ?")) {
-        return;
-      }
-
+      if (!confirm("Voulez-vous vraiment supprimer cette entrée manuelle ?")) return;
       try {
         const response = await fetch("/delete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ exceptionId: exceptionId })
+          body: JSON.stringify({ exceptionId: excId })
         });
-
         if (response.ok) {
           overlay.classList.remove("active");
           window.location.reload();
@@ -195,18 +172,13 @@
         alert("Erreur lors de la suppression: " + error.message);
       }
     } else if (isCommit) {
-      // Exclusion d'un commit
-      if (!confirm("Voulez-vous vraiment exclure ce commit du journal ?")) {
-        return;
-      }
-
+      if (!confirm("Voulez-vous vraiment exclure ce commit du journal ?")) return;
       try {
         const response = await fetch("/exclude", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sha: sha })
+          body: JSON.stringify({ sha })
         });
-
         if (response.ok) {
           overlay.classList.remove("active");
           window.location.reload();
@@ -222,31 +194,20 @@
     }
   };
 
-  // Help modal
   const helpBtn = document.getElementById("divHelpButton");
   const helpOverlay = document.getElementById("helpOverlay");
-
-  helpBtn.onclick = () => {
-    helpOverlay.classList.add("active");
-  };
-
+  helpBtn.onclick = () => helpOverlay.classList.add("active");
   helpOverlay.onclick = (e) => {
     if (e.target === helpOverlay) helpOverlay.classList.remove("active");
   };
 
-  // Stats modal
   const statsBtn = document.getElementById("divStatsButton");
   const statsOverlay = document.getElementById("statsOverlay");
-
-  statsBtn.onclick = () => {
-    statsOverlay.classList.add("active");
-  };
-
+  statsBtn.onclick = () => statsOverlay.classList.add("active");
   statsOverlay.onclick = (e) => {
     if (e.target === statsOverlay) statsOverlay.classList.remove("active");
   };
 
-  // Close all modals on Escape key
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       overlay.classList.remove("active");
@@ -254,5 +215,4 @@
       statsOverlay.classList.remove("active");
     }
   });
-
 </script>

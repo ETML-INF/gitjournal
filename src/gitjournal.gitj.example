@@ -1,0 +1,16 @@
+{
+  "repoUrl": "https://github.com/<username>/<repo>",
+  "projectName": "<myProject>",
+  "branch": "main",
+  "me": "<myGitUserName>",
+  "journalStartDate": null,
+  "columns": [
+    { "label": "Date",        "source": "date",        "format": "date",     "field": "date" },
+    { "label": "Tâche",       "source": "name",                               "field": "name" },
+    { "label": "Description", "source": "description",                        "field": "description" },
+    { "label": "Durée",       "source": "duration",    "format": "duration",  "field": "duration" },
+    { "label": "Statut",      "source": "status",      "format": "badge",     "field": "status" },
+    { "label": "Auteur",      "source": "author" }
+  ],
+  "exceptions": []
+}

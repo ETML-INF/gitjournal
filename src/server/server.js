@@ -174,11 +174,20 @@ function groupByDay(entries) {
   return groups;
 }
 
+function extractColumnValue(entry, column) {
+  const raw = entry[column.source];
+  if (raw == null) return '';
+  let value = String(raw);
+  if (column.regex) {
+    const match = value.match(new RegExp(column.regex, column.flags ?? 's'));
+    value = match ? (match[column.group ?? 0] ?? '') : '';
+  }
+  return value;
+}
+
 function validateException(x) {
   if (!x || typeof x !== "object") return "Objet invalide";
-  if (!x.name) return "Champ 'name' requis";
   if (!x.date || isNaN(new Date(x.date))) return "Champ 'date' invalide (ISO attendu)";
-  if (x.duration == null || isNaN(Number(x.duration))) return "Champ 'duration' requis (minutes)";
   return null;
 }
 
@@ -191,7 +200,7 @@ app.get(["/", "/jdt"], async (req, res) => {
       });
     }
 
-    const { projectName, me, journalStartDate } = currentProject;
+    const { projectName, me, journalStartDate, columns } = currentProject;
     const remoteBaseUrl = currentRepoPath ? await getRemoteBaseUrl(currentRepoPath) : "";
     const { owner, repo } = parseRepoUrl(remoteBaseUrl);
 
@@ -233,7 +242,10 @@ app.get(["/", "/jdt"], async (req, res) => {
 
     const manualEntries = exc.filter((e) => e.type == "commitless");
     commitStats.manualEntries = manualEntries.length;
-    const allEntriesReady = patched.concat(manualEntries);
+    const allEntriesReady = patched.concat(manualEntries).map((e) => ({
+      ...e,
+      cells: columns.map((col) => ({ column: col, value: extractColumnValue(e, col) }))
+    }));
     commitStats.total = allEntriesReady.length;
 
     const groups = groupByDay(allEntriesReady);
@@ -245,6 +257,7 @@ app.get(["/", "/jdt"], async (req, res) => {
       since,
       groups,
       totals,
+      columns,
       projectName: projectName || repo || me,
       me,
       appVersion: APP_VERSION,
@@ -341,12 +354,12 @@ function patchExistingException(ex) {
   if (!currentProject.exceptions) currentProject.exceptions = [];
   const existing = currentProject.exceptions.find((e) => e.id == ex.exceptionId);
   if (existing) {
-    existing.name = ex.name;
-    existing.description = ex.description;
-    existing.date = ex.date;
-    existing.duration = Number(ex.duration) || 0;
-    existing.author = ex.author;
-    existing.status = ex.status;
+    if (ex.name !== undefined) existing.name = ex.name;
+    if (ex.description !== undefined) existing.description = ex.description;
+    if (ex.date !== undefined) existing.date = ex.date;
+    if (ex.duration !== undefined) existing.duration = Number(ex.duration) || 0;
+    if (ex.author !== undefined) existing.author = ex.author;
+    if (ex.status !== undefined) existing.status = ex.status;
   }
 }
 

@@ -87,5 +87,49 @@
     <p style="margin: 0.5rem 0">
       Lorsqu'une entrée du journal a été généré automatiquement, il est possible d'accéder au commit sur github.com moyen du bouton Git à l'extrémité de la ligne du journal.
     </p>
+
+    <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.1rem">Colonnes configurables</h3>
+    <p style="margin: 0.5rem 0">
+      Depuis la version 2.2.0, les colonnes du journal sont définies dans le fichier <code>.gitj</code> via la propriété <code>columns</code>.
+      Chaque colonne est un objet JSON avec les propriétés suivantes :
+    </p>
+    <table style="width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.9rem">
+      <thead>
+        <tr style="background: #f4f4f4">
+          <th style="padding: 0.3rem 0.5rem; text-align: left; border-bottom: 1px solid #ddd">Propriété</th>
+          <th style="padding: 0.3rem 0.5rem; text-align: left; border-bottom: 1px solid #ddd">Obligatoire</th>
+          <th style="padding: 0.3rem 0.5rem; text-align: left; border-bottom: 1px solid #ddd">Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>label</code></td><td style="padding: 0.3rem 0.5rem">oui</td><td style="padding: 0.3rem 0.5rem">Titre affiché dans l'en-tête du tableau</td></tr>
+        <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>source</code></td><td style="padding: 0.3rem 0.5rem">oui</td><td style="padding: 0.3rem 0.5rem">Champ du commit à afficher (voir liste ci-dessous)</td></tr>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>field</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem">Champ éditable dans le formulaire. Si absent, la colonne est en lecture seule.</td></tr>
+        <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>format</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem"><code>date</code> (fr-CH), <code>duration</code> (Xh Ym), <code>badge</code> (encadré)</td></tr>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>regex</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem">Expression régulière appliquée à la valeur de <code>source</code></td></tr>
+        <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>group</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem">Groupe de capture à extraire (défaut : 0 = match entier)</td></tr>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>flags</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem">Flags regex (défaut : <code>"s"</code> — dotall)</td></tr>
+      </tbody>
+    </table>
+
+    <p style="margin: 0.5rem 0">Champs disponibles pour <code>source</code> (commit après analyse) :</p>
+    <table style="width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.9rem">
+      <thead>
+        <tr style="background: #f4f4f4">
+          <th style="padding: 0.3rem 0.5rem; text-align: left; border-bottom: 1px solid #ddd">Champ</th>
+          <th style="padding: 0.3rem 0.5rem; text-align: left; border-bottom: 1px solid #ddd">Contenu</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>date</code></td><td style="padding: 0.3rem 0.5rem">Date du commit (ISO 8601)</td></tr>
+        <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>name</code></td><td style="padding: 0.3rem 0.5rem">Première ligne du message (titre), métadonnées extraites</td></tr>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>description</code></td><td style="padding: 0.3rem 0.5rem">Lignes suivantes du message (corps)</td></tr>
+        <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>duration</code></td><td style="padding: 0.3rem 0.5rem">Durée en minutes extraite du message (ex. <code>[45m]</code>, <code>[1h30]</code>)</td></tr>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>status</code></td><td style="padding: 0.3rem 0.5rem">Statut extrait du message (ex. <code>DONE</code>, <code>WIP</code>)</td></tr>
+        <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>author</code></td><td style="padding: 0.3rem 0.5rem">Nom de l'auteur du commit</td></tr>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>sha</code></td><td style="padding: 0.3rem 0.5rem">Hash SHA du commit</td></tr>
+        <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>url</code></td><td style="padding: 0.3rem 0.5rem">URL GitHub du commit</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
