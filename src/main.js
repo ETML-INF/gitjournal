@@ -387,7 +387,7 @@ async function startExpressServer() {
   return new Promise((resolve, reject) => {
     try {
       // Use port 0 to get an automatically assigned free port
-      expressServer = expressApp.listen(0, () => {
+      expressServer = expressApp.listen(0, '127.0.0.1', () => {
         serverPort = expressServer.address().port;
         console.log(`Express server started on port ${serverPort}`);
         resolve();
