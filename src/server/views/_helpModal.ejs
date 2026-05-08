@@ -47,7 +47,15 @@
       Sinon, vous devez renseigner les champs <code>URL</code> et <code>Nom d'utilisateur</code> lors de la création d'un document.
       <br>
       Ces champs vont permettre de sélectionner vos commits (si vous travaillez à plusieurs) et à créer des liens vers les commits.
-      <br>
+    </p>
+    <p style="margin: 0.5rem 0">
+      Si vous committez sous plusieurs identités (ex. login GitHub et nom affiché), vous pouvez les lister toutes dans le champ <code>me</code> du fichier <code>.gitj</code> :
+    </p>
+    <code style="display: block; background: #f5f5f5; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0">
+      "me": ["fbrend23", "Brendan Fleurdededli"]
+    </code>
+    <p style="margin: 0.5rem 0">
+      GitJournal inclura alors les commits de toutes ces identités.
     </p>
 
     <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.1rem">Format des commits</h3>

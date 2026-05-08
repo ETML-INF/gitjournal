@@ -77,13 +77,14 @@ async function readLocalCommits(repoPath, me, since, baseUrl) {
   // %B = message complet (sujet + corps)
   const fmt = `%H${FIELD_SEP}%an${FIELD_SEP}%ad${FIELD_SEP}%B${COMMIT_SEP}`;
 
+  const authors = Array.isArray(me) ? me : [me];
   const args = [
     "-C",
     repoPath,
     "log",
     "--all",
     "--no-merges",
-    `--author=${me}`,
+    ...authors.map((a) => `--author=${a}`),
     "--date=iso-strict",
     `--format=format:${fmt}`
   ];
@@ -176,11 +177,11 @@ function groupByDay(entries) {
 
 function extractColumnValue(entry, column) {
   const raw = entry[column.source];
-  if (raw == null) return '';
+  if (raw == null) return "";
   let value = String(raw);
   if (column.regex) {
-    const match = value.match(new RegExp(column.regex, column.flags ?? 's'));
-    value = match ? (match[column.group ?? 0] ?? '') : '';
+    const match = value.match(new RegExp(column.regex, column.flags ?? "s"));
+    value = match ? (match[column.group ?? 0] ?? "") : "";
   }
   return value;
 }
@@ -200,7 +201,9 @@ app.get(["/", "/jdt"], async (req, res) => {
       });
     }
 
-    const { projectName, me, journalStartDate, columns } = currentProject;
+    const { projectName, me: meRaw, journalStartDate, columns } = currentProject;
+    const me = Array.isArray(meRaw) ? meRaw.join(" / ") : meRaw;
+    const meAuthors = Array.isArray(meRaw) ? meRaw : [meRaw];
     const remoteBaseUrl = currentRepoPath ? await getRemoteBaseUrl(currentRepoPath) : "";
     const { owner, repo } = parseRepoUrl(remoteBaseUrl);
 
@@ -221,7 +224,7 @@ app.get(["/", "/jdt"], async (req, res) => {
     };
 
     if (currentRepoPath) {
-      const raw = await readLocalCommits(currentRepoPath, me, journalStartDate, remoteBaseUrl);
+      const raw = await readLocalCommits(currentRepoPath, meAuthors, journalStartDate, remoteBaseUrl);
       myEntries = raw.map(groom).filter((c) => c.duration > 0);
       commitStats.fromGit = myEntries.length;
     }

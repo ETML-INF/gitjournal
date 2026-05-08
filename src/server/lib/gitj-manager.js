@@ -169,6 +169,15 @@ export function validateProject(projectData) {
     }
   }
 
+  // Valider que 'me' est une string ou un tableau de strings non vide
+  const me = projectData.me;
+  if (
+    !(typeof me === 'string' && me.length > 0) &&
+    !(Array.isArray(me) && me.length > 0 && me.every((m) => typeof m === 'string'))
+  ) {
+    throw new Error("Invalid project: 'me' must be a non-empty string or array of strings");
+  }
+
   // Valider que exceptions est un tableau
   if (!Array.isArray(projectData.exceptions)) {
     throw new Error('Invalid project: exceptions must be an array');
