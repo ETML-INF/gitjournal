@@ -92,7 +92,6 @@ async function readLocalCommits(repoPath, me, since, baseUrl) {
     repoPath,
     "log",
     "--all",
-    "--no-merges",
     ...authors.map((a) => `--author=${a}`),
     "--date=iso-strict",
     `--format=format:${fmt}`
