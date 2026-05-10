@@ -1,7 +1,7 @@
 {
   "projectName": "gitjournal",
   "me": "XCarrel",
-  "journalStartDate": null,
+  "journalStartDate": "2026-01-01",
   "columns": [
     {
       "label": "Date",
@@ -31,16 +31,6 @@
     }
   ],
   "exceptions": [
-    {
-      "id": "35952a14-af31-469f-921c-9c0ed0255ee4",
-      "type": "commitless",
-      "name": "Démarrage de projet",
-      "description": "Le prof présente le projet. Je m'inscris sur Marketplace",
-      "date": "2026-04-28T10:14",
-      "duration": 30,
-      "status": "DONE",
-      "author": "XCarrel"
-    },
     {
       "id": "5f18717e-3777-43d9-882b-db4374f4bae3",
       "type": "commitpatch",
@@ -108,6 +98,38 @@
       "description": "",
       "duration": 30,
       "status": "Done"
+    },
+    {
+      "sha": "73f80ee263ad39c6c8460110f8493798516f7b2f",
+      "excluded": true
+    },
+    {
+      "sha": "33625bdc956fc2f064a4bc9aa7dc0d5c09e5f820",
+      "excluded": true
+    },
+    {
+      "sha": "ddc9ba2a3879384dedcb81889498f965359dbbb7",
+      "excluded": true
+    },
+    {
+      "sha": "91c649b144805fdcb9d923269375124515e2f225",
+      "excluded": true
+    },
+    {
+      "sha": "3492b40274382973a1dcfe9bcdf7b1cdb8790409",
+      "excluded": true
+    },
+    {
+      "sha": "22e2b8eeb8e2119566542cf93028ef91fb0f3744",
+      "excluded": true
+    },
+    {
+      "sha": "0b3e333264243104228e04248a86626e163085df",
+      "excluded": true
+    },
+    {
+      "sha": "1c461132f6531d48cc1c98e5144ddbd9600aed18",
+      "excluded": true
     }
   ]
 }
