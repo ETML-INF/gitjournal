@@ -52,10 +52,13 @@
       Si vous committez sous plusieurs identités (ex. login GitHub et nom affiché), vous pouvez les lister toutes dans le champ <code>me</code> du fichier <code>.gitj</code> :
     </p>
     <code style="display: block; background: #f5f5f5; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0">
-      "me": ["fbrend23", "Brendan Fleurdededli"]
+      "me": ["JDalton", "Joe Dalton"]
     </code>
     <p style="margin: 0.5rem 0">
       GitJournal inclura alors les commits de toutes ces identités.
+    </p>
+    <p style="margin: 0.5rem 0">
+      Remarque: tous les commits sont pris en considération, indépendamment de la branche sur laquelle ils se trouvent.
     </p>
 
     <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.1rem">Format des commits</h3>
@@ -117,10 +120,23 @@
         <tr><td style="padding: 0.3rem 0.5rem"><code>regex</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem">Expression régulière appliquée à la valeur de <code>source</code></td></tr>
         <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>group</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem">Groupe de capture à extraire (défaut : 0 = match entier)</td></tr>
         <tr><td style="padding: 0.3rem 0.5rem"><code>flags</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem">Flags regex (défaut : <code>"s"</code> — dotall)</td></tr>
+        <tr style="background: #fafafa"><td style="padding: 0.3rem 0.5rem"><code>type</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem"><code>select</code> ou <code>dropdown</code> pour afficher une liste déroulante dans le formulaire d'édition</td></tr>
+        <tr><td style="padding: 0.3rem 0.5rem"><code>values</code> / <code>options</code></td><td style="padding: 0.3rem 0.5rem">non</td><td style="padding: 0.3rem 0.5rem">Valeurs proposées dans la liste déroulante</td></tr>
       </tbody>
     </table>
 
-    <p style="margin: 0.5rem 0">Champs disponibles pour <code>source</code> (commit après analyse) :</p>
+    <p style="margin: 0.5rem 0">
+      Pour ajouter une colonne personnalisée éditable, choisissez un nom de champ libre et utilisez-le à la fois dans <code>source</code> et <code>field</code>.
+      Les valeurs saisies sont enregistrées dans les entrées manuelles et dans les modifications de commits.
+    </p>
+    <p style="margin: 0.5rem 0">
+      Exemple:
+    </p>
+    <code style="display: block; background: #f5f5f5; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0">
+      { "label": "Activité", "source": "activity", "field": "activity", "type": "select", "values": ["dev", "spec", "GP"] }
+    </code>
+
+    <p style="margin: 0.5rem 0">Les champs suivants sont disponibles pour <code>source</code> à pertir de l'importation des commits :</p>
     <table style="width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.9rem">
       <thead>
         <tr style="background: #f4f4f4">

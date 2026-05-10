@@ -37,6 +37,15 @@ pnpm start
   "projectName": "Mon Projet",
   "me": "Prénom Nom",
   "journalStartDate": "2024-01-01T00:00:00.000Z",
+  "columns": [
+    { "label": "Date", "source": "date", "format": "date", "field": "date" },
+    { "label": "Tâche", "source": "name", "field": "name" },
+    { "label": "Activité", "source": "activity", "field": "activity", "type": "select", "values": ["dev", "spec", "GP"] },
+    { "label": "Description", "source": "description", "field": "description" },
+    { "label": "Durée", "source": "duration", "format": "duration", "field": "duration" },
+    { "label": "Statut", "source": "status", "format": "badge", "field": "status" },
+    { "label": "Auteur", "source": "author" }
+  ],
   "exceptions": []
 }
 ```
@@ -46,9 +55,26 @@ pnpm start
 | `projectName` | oui | Nom affiché dans le journal |
 | `me` | oui | Nom d'auteur git pour filtrer vos commits |
 | `journalStartDate` | non | Date de début, format ISO 8601 |
+| `columns` | oui | Colonnes affichées dans le journal |
 | `exceptions` | oui | Entrées manuelles et modifications de commits |
 
 > L'application scanne toutes les branches automatiquement (`git log --all`).
+
+### Colonnes personnalisées
+
+La propriété `columns` permet d'ajouter des colonnes au journal. Pour une colonne personnalisée éditable, utiliser le même nom libre dans `source` et `field` :
+
+```json
+{ "label": "Activité", "source": "activity", "field": "activity" }
+```
+
+Pour afficher une liste déroulante dans le formulaire d'ajout ou de modification, ajouter `type: "select"` ou `type: "dropdown"` avec les valeurs autorisées :
+
+```json
+{ "label": "Activité", "source": "activity", "field": "activity", "type": "select", "values": ["dev", "spec", "GP"] }
+```
+
+`options` peut aussi être utilisé à la place de `values`.
 
 ### Ouvrir un projet existant
 
