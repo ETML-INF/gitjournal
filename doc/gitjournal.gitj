@@ -15,17 +15,6 @@
       "field": "name"
     },
     {
-      "label": "Activité",
-      "source": "activity",
-      "field": "activity",
-      "type": "select",
-      "values": [
-        "dev",
-        "spec",
-        "GP"
-      ]
-    },
-    {
       "label": "Description",
       "source": "description",
       "field": "description"
