@@ -1,0 +1,90 @@
+{
+  "projectName": "gitjournal",
+  "me": "XCarrel",
+  "journalStartDate": null,
+  "columns": [
+    {
+      "label": "Date",
+      "source": "date",
+      "format": "date",
+      "field": "date"
+    },
+    {
+      "label": "Tâche",
+      "source": "name",
+      "field": "name"
+    },
+    {
+      "label": "Description",
+      "source": "description",
+      "field": "description"
+    },
+    {
+      "label": "Durée",
+      "source": "duration",
+      "format": "duration",
+      "field": "duration"
+    },
+    {
+      "label": "Statut",
+      "source": "status",
+      "format": "badge",
+      "field": "status"
+    },
+    {
+      "label": "Auteur",
+      "source": "author"
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "35952a14-af31-469f-921c-9c0ed0255ee4",
+      "type": "commitless",
+      "name": "Démarrage de projet",
+      "description": "Le prof présente le projet. Je m'inscris sur Marketplace",
+      "date": "2026-04-28T10:14",
+      "duration": 30,
+      "status": "DONE",
+      "author": "XCarrel"
+    },
+    {
+      "id": "5f18717e-3777-43d9-882b-db4374f4bae3",
+      "type": "commitpatch",
+      "sha": "508d48c38b09798bd49e05da03d437427c80bdf8",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/508d48c38b09798bd49e05da03d437427c80bdf8",
+      "name": "feat(electron): Améliorer le help",
+      "description": "Valider commande CLI avec un test unitaire",
+      "date": "2026-01-04T10:11:00.000Z",
+      "duration": 15,
+      "status": "WIP",
+      "author": "XCarrel",
+      "patch": true
+    },
+    {
+      "id": "5ff03998-27f2-434e-bfdc-197c915a414a",
+      "type": "commitpatch",
+      "sha": "61e49a033d363e1f98a142566c756bbe77ed3df0",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/61e49a033d363e1f98a142566c756bbe77ed3df0",
+      "name": "Add Help",
+      "description": "Testing refresh",
+      "date": "2026-01-04T09:42:00.000Z",
+      "duration": 30,
+      "status": "WIP",
+      "author": "XCarrel",
+      "patch": true
+    },
+    {
+      "id": "c05a3379-9183-4e34-a163-eac24bbe4f18",
+      "type": "commitpatch",
+      "sha": "0faa36d701e75842d22b62e75715ca07c1877d80",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/0faa36d701e75842d22b62e75715ca07c1877d80",
+      "name": "feat(htmljournal): Add filtering",
+      "description": "On name and date and more",
+      "date": "2025-04-28T13:47:00.000Z",
+      "duration": 30,
+      "status": "DONE",
+      "author": "XCarrel",
+      "patch": true
+    }
+  ]
+}

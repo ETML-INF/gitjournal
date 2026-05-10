@@ -1,6 +1,6 @@
-import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
+import fs from "fs/promises";
+import path from "path";
+import os from "os";
 
 /**
  * Charge un fichier .gitj et retourne l'objet projet
@@ -8,11 +8,11 @@ import os from 'os';
  * @returns {Promise<Object>} - L'objet projet
  */
 export async function loadProject(filePath) {
-  const data = await fs.readFile(filePath, 'utf-8');
+  const data = await fs.readFile(filePath, "utf-8");
 
   // Vérifier que le fichier n'est pas vide
   if (!data || data.trim().length === 0) {
-    throw new Error('Le fichier .gitj est vide ou corrompu');
+    throw new Error("Le fichier .gitj est vide ou corrompu");
   }
 
   const project = JSON.parse(data);
@@ -42,7 +42,7 @@ export async function saveProject(filePath, projectData) {
 
   // Vérifier que les données ne sont pas vides
   if (!jsonData || jsonData.trim().length === 0) {
-    throw new Error('Impossible de sauvegarder un projet vide');
+    throw new Error("Impossible de sauvegarder un projet vide");
   }
 
   // Écriture atomique : écrire dans un fichier temporaire puis renommer
@@ -52,16 +52,16 @@ export async function saveProject(filePath, projectData) {
 
   try {
     // Écrire dans le fichier temporaire
-    await fs.writeFile(tempPath, jsonData, 'utf-8');
+    await fs.writeFile(tempPath, jsonData, "utf-8");
 
     // Vérifier que le fichier temporaire a été écrit correctement
     const stats = await fs.stat(tempPath);
     if (stats.size === 0) {
-      throw new Error('Le fichier temporaire est vide après écriture');
+      throw new Error("Le fichier temporaire est vide après écriture");
     }
 
     // Vérifier que les données sont valides en relisant
-    const writtenData = await fs.readFile(tempPath, 'utf-8');
+    const writtenData = await fs.readFile(tempPath, "utf-8");
     JSON.parse(writtenData); // Valider que c'est du JSON valide
 
     // Renommer atomiquement (remplace le fichier existant)
@@ -78,12 +78,12 @@ export async function saveProject(filePath, projectData) {
 }
 
 const DEFAULT_COLUMNS = [
-  { label: "Date",        source: "date",        format: "date",     field: "date" },
-  { label: "Tâche",       source: "name",                             field: "name" },
-  { label: "Description", source: "description",                      field: "description" },
-  { label: "Durée",       source: "duration",    format: "duration",  field: "duration" },
-  { label: "Statut",      source: "status",      format: "badge",     field: "status" },
-  { label: "Auteur",      source: "author" }
+  { label: "Date", source: "date", format: "date", field: "date" },
+  { label: "Tâche", source: "name", field: "name" },
+  { label: "Description", source: "description", field: "description" },
+  { label: "Durée", source: "duration", format: "duration", field: "duration" },
+  { label: "Statut", source: "status", format: "badge", field: "status" },
+  { label: "Auteur", source: "author" }
 ];
 
 /**
@@ -132,7 +132,7 @@ export function updateException(projectData, exceptionId, updates) {
     return null;
   }
 
-  const exception = projectData.exceptions.find(e => e.id === exceptionId);
+  const exception = projectData.exceptions.find((e) => e.id === exceptionId);
   if (!exception) {
     return null;
   }
@@ -156,13 +156,12 @@ export function getExceptions(projectData) {
  * @param {Object} projectData - L'objet projet à valider
  */
 export function validateProject(projectData) {
-  if (!projectData || typeof projectData !== 'object') {
-    throw new Error('Invalid project: must be an object');
+  if (!projectData || typeof projectData !== "object") {
+    throw new Error("Invalid project: must be an object");
   }
 
   // Les champs peuvent être vides mais doivent exister
-  // Note: 'branch' est conservé pour la rétrocompatibilité mais n'est plus requis
-  const requiredFields = ['projectName', 'me', 'exceptions'];
+  const requiredFields = ["projectName", "me", "exceptions"];
   for (const field of requiredFields) {
     if (!(field in projectData)) {
       throw new Error(`Invalid project: missing field '${field}'`);
@@ -172,29 +171,29 @@ export function validateProject(projectData) {
   // Valider que 'me' est une string ou un tableau de strings non vide
   const me = projectData.me;
   if (
-    !(typeof me === 'string' && me.length > 0) &&
-    !(Array.isArray(me) && me.length > 0 && me.every((m) => typeof m === 'string'))
+    !(typeof me === "string" && me.length > 0) &&
+    !(Array.isArray(me) && me.length > 0 && me.every((m) => typeof m === "string"))
   ) {
     throw new Error("Invalid project: 'me' must be a non-empty string or array of strings");
   }
 
   // Valider que exceptions est un tableau
   if (!Array.isArray(projectData.exceptions)) {
-    throw new Error('Invalid project: exceptions must be an array');
+    throw new Error("Invalid project: exceptions must be an array");
   }
 
   // journalStartDate est optionnel mais doit être null ou une string si présent
-  if ('journalStartDate' in projectData) {
-    if (projectData.journalStartDate !== null && typeof projectData.journalStartDate !== 'string') {
-      throw new Error('Invalid project: journalStartDate must be null or a string');
+  if ("journalStartDate" in projectData) {
+    if (projectData.journalStartDate !== null && typeof projectData.journalStartDate !== "string") {
+      throw new Error("Invalid project: journalStartDate must be null or a string");
     }
   }
 
   if (!Array.isArray(projectData.columns) || projectData.columns.length === 0) {
     throw new Error(
-      'Ce fichier .gitj ne définit pas de colonnes (requis depuis v2.2.0).\n' +
-      'Ajoutez une propriété "columns" à votre fichier .gitj.\n' +
-      'Consultez doc/gitjournal.gitj pour un exemple complet.'
+      "Ce fichier .gitj ne définit pas de colonnes (requis depuis v2.2.0).\n" +
+        'Ajoutez une propriété "columns" à votre fichier .gitj.\n' +
+        "Consultez doc/gitjournal.gitj pour un exemple complet."
     );
   }
 }

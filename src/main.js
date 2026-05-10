@@ -2,11 +2,7 @@ import { app, BrowserWindow, Menu, dialog, shell, ipcMain } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { app as expressApp, setProjectData, onProjectChange } from "./server/server.js";
-import {
-  initSettingsPath,
-  getLastOpenedFile,
-  setLastOpenedFile
-} from "./server/lib/settings-manager.js";
+import { initSettingsPath, getLastOpenedFile, setLastOpenedFile } from "./server/lib/settings-manager.js";
 import { loadProject, saveProject, createNewProject } from "./server/lib/gitj-manager.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -24,6 +20,7 @@ let isSaving = false; // Flag pour éviter les sauvegardes simultanées
 let serverPort = 0; // Will be assigned dynamically
 const getServerUrl = () => `http://localhost:${serverPort}`;
 
+// TODO 03: Vérifier l'export CSV conforme aux colonnes custom
 // === GESTION DES PROJETS ===
 
 /**
@@ -129,6 +126,7 @@ async function createProjectWithConfig(config) {
 
     // Créer le projet avec la configuration fournie
     const projectData = {
+      ...createNewProject(),
       projectName: config.projectName,
       me: config.me,
       journalStartDate: config.journalStartDate || null,
@@ -164,7 +162,7 @@ async function saveCurrentProject() {
 
   // Éviter les sauvegardes simultanées
   if (isSaving) {
-    console.log('Sauvegarde déjà en cours, ignorée');
+    console.log("Sauvegarde déjà en cours, ignorée");
     return false;
   }
 
@@ -173,16 +171,16 @@ async function saveCurrentProject() {
 
     // Valider que les données ne sont pas vides avant de sauvegarder
     if (!currentProjectData || Object.keys(currentProjectData).length === 0) {
-      console.error('Tentative de sauvegarde de données vides - ignorée');
+      console.error("Tentative de sauvegarde de données vides - ignorée");
       return false;
     }
 
     console.log(`Sauvegarde du projet: ${currentProjectPath}`);
     await saveProject(currentProjectPath, currentProjectData);
-    console.log('Sauvegarde réussie');
+    console.log("Sauvegarde réussie");
     return true;
   } catch (error) {
-    console.error('Erreur de sauvegarde:', error);
+    console.error("Erreur de sauvegarde:", error);
     dialog.showErrorBox("Erreur de sauvegarde", `Impossible de sauvegarder le projet: ${error.message}`);
     return false;
   } finally {
@@ -284,21 +282,21 @@ async function exportToCSV() {
     `);
 
     const csvEscape = (val) => {
-      const s = String(val ?? '');
-      if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
+      const s = String(val ?? "");
+      if (s.includes('"') || s.includes(",") || s.includes("\n") || s.includes("\r")) {
         return '"' + s.replace(/"/g, '""') + '"';
       }
       return s;
     };
 
-    const header = ['Date', 'Tâche (abrégé)', 'Tâche/Commit', 'Description', 'Durée', 'Statut', 'Auteur'];
-    const lines = [header.map(csvEscape).join(',')];
+    const header = ["Date", "Tâche (abrégé)", "Tâche/Commit", "Description", "Durée", "Statut", "Auteur"];
+    const lines = [header.map(csvEscape).join(",")];
     for (const row of rows) {
-      lines.push(row.map(csvEscape).join(','));
+      lines.push(row.map(csvEscape).join(","));
     }
 
     const fs = await import("fs/promises");
-    await fs.writeFile(filePath, '\uFEFF' + lines.join('\r\n'), 'utf8');
+    await fs.writeFile(filePath, "\uFEFF" + lines.join("\r\n"), "utf8");
 
     const { response } = await dialog.showMessageBox(mainWindow, {
       type: "info",
@@ -387,7 +385,7 @@ async function startExpressServer() {
   return new Promise((resolve, reject) => {
     try {
       // Use port 0 to get an automatically assigned free port
-      expressServer = expressApp.listen(0, '127.0.0.1', () => {
+      expressServer = expressApp.listen(0, "127.0.0.1", () => {
         serverPort = expressServer.address().port;
         console.log(`Express server started on port ${serverPort}`);
         resolve();
@@ -584,17 +582,17 @@ function createApplicationMenu() {
 
 // Vérifier si un fichier .gitj a été passé en argument (Windows/Linux)
 if (process.argv.length >= 2) {
-  const arg = process.argv.find(arg => arg.endsWith('.gitj'));
+  const arg = process.argv.find((arg) => arg.endsWith(".gitj"));
   if (arg) {
     fileToOpenAtStartup = arg;
   }
 }
 
 // Gérer l'ouverture de fichier sur macOS
-app.on('open-file', (event, filePath) => {
+app.on("open-file", (event, filePath) => {
   event.preventDefault();
 
-  if (filePath.endsWith('.gitj')) {
+  if (filePath.endsWith(".gitj")) {
     if (!mainWindow) {
       // L'app n'est pas encore prête, on stocke le fichier
       fileToOpenAtStartup = filePath;
@@ -676,12 +674,12 @@ app.on("before-quit", async () => {
 
   // Attendre la fin de toute sauvegarde en cours
   while (isSaving) {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   // Sauvegarder le projet une dernière fois avant de quitter
   if (currentProjectPath && currentProjectData) {
-    console.log('Sauvegarde finale avant fermeture de l\'application');
+    console.log("Sauvegarde finale avant fermeture de l'application");
     await saveCurrentProject();
   }
 
