@@ -20,7 +20,6 @@ let isSaving = false; // Flag pour éviter les sauvegardes simultanées
 let serverPort = 0; // Will be assigned dynamically
 const getServerUrl = () => `http://localhost:${serverPort}`;
 
-// TODO 03: Vérifier l'export CSV conforme aux colonnes custom
 // === GESTION DES PROJETS ===
 
 /**
@@ -251,7 +250,6 @@ async function exportToPDF() {
 }
 
 // === EXPORT CSV ===
-
 async function exportToCSV() {
   if (!mainWindow) return;
 
@@ -266,18 +264,16 @@ async function exportToCSV() {
   try {
     const rows = await mainWindow.webContents.executeJavaScript(`
       (function() {
-        return Array.from(document.querySelectorAll('tbody tr[data-date]')).map(tr => {
-          const cells = tr.querySelectorAll('td');
-          const date = cells[0].innerText.trim();
-          const name = cells[1].innerText.trim();
-          const description = cells[2].innerText.trim();
-          const duration = cells[3].innerText.trim();
-          const status = cells[4].innerText.trim();
-          const author = cells[5].innerText.trim();
-          const parenIdx = name.indexOf('(');
-          const extracted = parenIdx !== -1 ? name.substring(0, parenIdx).trim() : '';
-          return [date, extracted, name, description, duration, status, author];
+        const table = document.querySelector('tbody tr[data-date]')?.closest('table');
+        if (!table) return { header: [], rows: [] };
+
+        const header = Array.from(table.tHead?.rows[0]?.cells ?? []).map(th => th.innerText.trim());
+        const rows = Array.from(table.querySelectorAll('tbody tr[data-date]')).map(tr => {
+          const cells = Array.from(tr.cells).slice(0, header.length);
+          return cells.map(cell => cell.innerText.trim());
         });
+
+        return { header, rows };
       })()
     `);
 
@@ -289,9 +285,8 @@ async function exportToCSV() {
       return s;
     };
 
-    const header = ["Date", "Tâche (abrégé)", "Tâche/Commit", "Description", "Durée", "Statut", "Auteur"];
-    const lines = [header.map(csvEscape).join(",")];
-    for (const row of rows) {
+    const lines = [rows.header.map(csvEscape).join(",")];
+    for (const row of rows.rows) {
       lines.push(row.map(csvEscape).join(","));
     }
 

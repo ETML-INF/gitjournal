@@ -26,12 +26,6 @@
       "field": "duration"
     },
     {
-      "label": "Statut",
-      "source": "status",
-      "format": "badge",
-      "field": "status"
-    },
-    {
       "label": "Auteur",
       "source": "author"
     }
