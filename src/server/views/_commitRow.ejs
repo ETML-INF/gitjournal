@@ -8,6 +8,7 @@
   data-name="<%= c.name ?? ''%>"
   data-description="<%= c.description ?? ''%>"
   data-duration="<%= c.duration ?? 0%>"
+  data-entry="<%= JSON.stringify(c.editableValues ?? {}) %>"
 >
   <% c.cells.forEach(cell => { %>
   <td<% if (cell.column.format === 'duration') { %> style="width: 70px"<% } %>><% if (cell.column.format === 'date') { %><%= new Date(cell.value).toLocaleString('fr-CH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) %><% } else if (cell.column.format === 'duration') { %><%= Math.floor(Number(cell.value||0)/60) %>h&nbsp;<%= Number(cell.value||0)%60 %>m<% } else if (cell.column.format === 'badge') { %><span class="badge"><%= cell.value %></span><% } else if (cell.column.field === 'description') { %><%- (cell.value || '').replace(/\n/g, '<br>') %><% } else { %><%= cell.value %><% } %></td>

@@ -11,6 +11,20 @@
         <input type="number" name="duration" id="field_duration" />
         <% } else if (col.field === 'description') { %>
         <textarea name="description" id="field_description"></textarea>
+        <% } else if ((col.type === 'select' || col.type === 'dropdown') && Array.isArray(col.values)) { %>
+        <select name="<%= col.field %>" id="field_<%= col.field %>">
+          <option value=""></option>
+          <% col.values.forEach(value => { %>
+          <option value="<%= value %>"><%= value %></option>
+          <% }) %>
+        </select>
+        <% } else if ((col.type === 'select' || col.type === 'dropdown') && Array.isArray(col.options)) { %>
+        <select name="<%= col.field %>" id="field_<%= col.field %>">
+          <option value=""></option>
+          <% col.options.forEach(option => { const value = typeof option === 'object' ? option.value : option; const label = typeof option === 'object' ? (option.label ?? option.value) : option; %>
+          <option value="<%= value %>"><%= label %></option>
+          <% }) %>
+        </select>
         <% } else { %>
         <input type="text" name="<%= col.field %>" id="field_<%= col.field %>" />
         <% } %>

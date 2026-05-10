@@ -113,6 +113,7 @@
       e.preventDefault();
       document.getElementById("heaInputForm").innerText = "Modification d'une entrée";
 
+      const rowValues = JSON.parse(row.dataset.entry || "{}");
       EDITABLE_FIELDS.forEach(field => {
         const el = getField(field);
         if (!el) return;
@@ -120,8 +121,8 @@
           const d = new Date(row.dataset.date);
           const pad = n => String(n).padStart(2, '0');
           el.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-        } else if (row.dataset[field] !== undefined) {
-          el.value = row.dataset[field];
+        } else if (rowValues[field] !== undefined) {
+          el.value = rowValues[field];
         }
       });
 

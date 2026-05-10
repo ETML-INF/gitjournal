@@ -192,6 +192,33 @@ function validateException(x) {
   return null;
 }
 
+function editableColumns() {
+  return (currentProject?.columns || []).filter((col) => col.field);
+}
+
+function valueForEditableField(entry, field) {
+  const value = entry[field];
+  return value == null ? "" : value;
+}
+
+function normalizeEditableFieldValue(field, value) {
+  if (field === "date") return new Date(value).toISOString();
+  if (field === "duration") return Number(value) || 0;
+  return value ?? "";
+}
+
+function buildEditableValues(entry) {
+  return Object.fromEntries(editableColumns().map((col) => [col.field, valueForEditableField(entry, col.field)]));
+}
+
+function applyEditableFields(target, source) {
+  for (const { field } of editableColumns()) {
+    if (source[field] !== undefined) {
+      target[field] = normalizeEditableFieldValue(field, source[field]);
+    }
+  }
+}
+
 // Page principale — lit les commits depuis le dépôt git local
 app.get(["/", "/jdt"], async (req, res) => {
   try {
@@ -247,6 +274,7 @@ app.get(["/", "/jdt"], async (req, res) => {
     commitStats.manualEntries = manualEntries.length;
     const allEntriesReady = patched.concat(manualEntries).map((e) => ({
       ...e,
+      editableValues: buildEditableValues(e),
       cells: columns.map((col) => ({ column: col, value: extractColumnValue(e, col) }))
     }));
     commitStats.total = allEntriesReady.length;
@@ -357,44 +385,35 @@ function patchExistingException(ex) {
   if (!currentProject.exceptions) currentProject.exceptions = [];
   const existing = currentProject.exceptions.find((e) => e.id == ex.exceptionId);
   if (existing) {
-    if (ex.name !== undefined) existing.name = ex.name;
-    if (ex.description !== undefined) existing.description = ex.description;
-    if (ex.date !== undefined) existing.date = ex.date;
-    if (ex.duration !== undefined) existing.duration = Number(ex.duration) || 0;
+    applyEditableFields(existing, ex);
     if (ex.author !== undefined) existing.author = ex.author;
-    if (ex.status !== undefined) existing.status = ex.status;
   }
 }
 
 function addNewCommitlessEntry(ex) {
   if (!currentProject.exceptions) currentProject.exceptions = [];
-  currentProject.exceptions.push({
+  const entry = {
     id: crypto.randomUUID(),
     type: "commitless",
-    name: ex.name,
-    description: ex.description || "",
-    date: new Date(ex.date).toISOString(),
-    duration: Number(ex.duration) || 0,
-    status: ex.status || "",
     author: currentProject.me
-  });
+  };
+  applyEditableFields(entry, ex);
+  currentProject.exceptions.push(entry);
 }
 
 function addNewCommitPatchEntry(ex) {
   if (!currentProject.exceptions) currentProject.exceptions = [];
-  currentProject.exceptions.push({
+  const entry = {
     id: crypto.randomUUID(),
     type: "commitpatch",
     sha: ex.sha,
     url: ex.url,
-    name: ex.name,
-    description: ex.description || "",
-    date: new Date(ex.date).toISOString(),
-    duration: Number(ex.duration) || 0,
-    status: ex.status || "Done",
     author: ex.author || "?",
     patch: true
-  });
+  };
+  applyEditableFields(entry, ex);
+  if (!entry.status) entry.status = "Done";
+  currentProject.exceptions.push(entry);
 }
 
 export { app };

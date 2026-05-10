@@ -15,6 +15,17 @@
       "field": "name"
     },
     {
+      "label": "Activité",
+      "source": "activity",
+      "field": "activity",
+      "type": "select",
+      "values": [
+        "dev",
+        "spec",
+        "GP"
+      ]
+    },
+    {
       "label": "Description",
       "source": "description",
       "field": "description"
@@ -79,6 +90,35 @@
       "status": "DONE",
       "author": "XCarrel",
       "patch": true
+    },
+    {
+      "id": "e30af9ba-8b96-4669-bd80-c16a7b2e0d39",
+      "type": "commitpatch",
+      "sha": "a63889e12d197030c0f6f1402f0568482a4bcc3d",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/a63889e12d197030c0f6f1402f0568482a4bcc3d",
+      "author": "XCarrel",
+      "patch": true,
+      "date": "2024-11-22T11:37:00.000Z",
+      "name": "feat(snake): Afficher la tête",
+      "priority": "Medium",
+      "description": "",
+      "duration": 30,
+      "status": "Done",
+      "activity": "dev"
+    },
+    {
+      "id": "d61ab04a-5dbd-4254-9601-d0629341a18c",
+      "type": "commitpatch",
+      "sha": "1b292cd4c7bdcb93e85f482c976282d79b765b04",
+      "url": "https://github.com/ETML-INF/gitjournal/commit/1b292cd4c7bdcb93e85f482c976282d79b765b04",
+      "author": "XCarrel",
+      "patch": true,
+      "date": "2026-01-04T10:41:00.000Z",
+      "name": "feat(electron): Finalize first version of help",
+      "priority": "High",
+      "description": "",
+      "duration": 30,
+      "status": "Done"
     }
   ]
 }
