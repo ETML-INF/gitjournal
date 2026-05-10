@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, dialog, shell, ipcMain } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
-import { app as expressApp, setProjectData, onProjectChange } from "./server/server.js";
+import { app as expressApp, setProjectData, onProjectChange, normalizeMeInput } from "./server/server.js";
 import { initSettingsPath, getLastOpenedFile, setLastOpenedFile } from "./server/lib/settings-manager.js";
 import { loadProject, saveProject, createNewProject } from "./server/lib/gitj-manager.js";
 
@@ -19,6 +19,7 @@ let isSaving = false; // Flag pour éviter les sauvegardes simultanées
 
 let serverPort = 0; // Will be assigned dynamically
 const getServerUrl = () => `http://localhost:${serverPort}`;
+const formatMeForTitle = (me) => (Array.isArray(me) ? me.join(" / ") : me);
 
 // === GESTION DES PROJETS ===
 
@@ -55,7 +56,7 @@ async function openProject(filePath) {
 
     // Mettre à jour le titre de la fenêtre
     if (mainWindow) {
-      const title = `Journal de travail - ${projectData.me} - ${projectData.projectName}`;
+      const title = `Journal de travail - ${formatMeForTitle(projectData.me)} - ${projectData.projectName}`;
       mainWindow.setTitle(title);
       mainWindow.reload();
     }
@@ -127,7 +128,7 @@ async function createProjectWithConfig(config) {
     const projectData = {
       ...createNewProject(),
       projectName: config.projectName,
-      me: config.me,
+      me: normalizeMeInput(config.me),
       journalStartDate: config.journalStartDate || null,
       exceptions: []
     };
@@ -421,7 +422,7 @@ function createMainWindow() {
   // Mettre à jour le titre une fois que la page est chargée
   mainWindow.webContents.on("did-finish-load", () => {
     if (currentProjectData && mainWindow) {
-      const title = `Journal de travail - ${currentProjectData.me} - ${currentProjectData.projectName}`;
+      const title = `Journal de travail - ${formatMeForTitle(currentProjectData.me)} - ${currentProjectData.projectName}`;
       mainWindow.setTitle(title);
     }
   });

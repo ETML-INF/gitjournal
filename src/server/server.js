@@ -8,6 +8,15 @@ import crypto from "crypto";
 import { VERSION as APP_VERSION } from "../version.js";
 import { groom } from "./lib/commit-parser.js";
 
+export function normalizeMeInput(me) {
+  if (Array.isArray(me)) return me.map((m) => String(m).trim()).filter(Boolean);
+  const names = String(me || "")
+    .split(/[,;]+/)
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return names.length > 1 ? names : names[0] || "";
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);

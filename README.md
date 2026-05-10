@@ -25,7 +25,7 @@ pnpm start
 2. Choisir où sauvegarder le fichier `.gitj` — **le placer à la racine du dépôt git à analyser**
 3. Remplir le formulaire :
    - **Nom du projet** : affiché dans le journal et l'export
-   - **Nom d'utilisateur Git** : valeur qui apparaît dans `git log --author=…` (filtre vos commits)
+   - **Nom(s) d'utilisateur Git** : valeur(s) qui apparaissent dans `git log --author=…` (filtre vos commits). Séparer plusieurs noms par une virgule ou un point-virgule.
    - **Date de début** : optionnel, ignore les commits antérieurs
 
 > L'application utilise le dossier du fichier `.gitj` comme racine du dépôt git. L'URL GitHub (pour les liens de commits) est détectée automatiquement via `git remote get-url origin`.
@@ -35,7 +35,7 @@ pnpm start
 ```json
 {
   "projectName": "Mon Projet",
-  "me": "Prénom Nom",
+  "me": ["Prénom Nom", "username"],
   "journalStartDate": "2024-01-01T00:00:00.000Z",
   "columns": [
     { "label": "Date", "source": "date", "format": "date", "field": "date" },
@@ -53,7 +53,7 @@ pnpm start
 | Champ | Obligatoire | Description |
 |---|---|---|
 | `projectName` | oui | Nom affiché dans le journal |
-| `me` | oui | Nom d'auteur git pour filtrer vos commits |
+| `me` | oui | Nom d'auteur git, ou liste de noms, pour filtrer vos commits |
 | `journalStartDate` | non | Date de début, format ISO 8601 |
 | `columns` | oui | Colonnes affichées dans le journal |
 | `exceptions` | oui | Entrées manuelles et modifications de commits |
