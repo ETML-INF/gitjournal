@@ -1,1 +1,4 @@
-onlyBuiltDependencies: electron
+nodeLinker: hoisted
+
+allowBuilds:
+  electron: false
