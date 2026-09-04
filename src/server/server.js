@@ -106,7 +106,6 @@ async function readLocalCommits(repoPath, me, since, baseUrl) {
   } catch (e) {
     return []; // Repo vide ou aucun commit encore
   }
-
   if (!stdout.trim()) return [];
 
   baseUrl = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
@@ -143,7 +142,6 @@ async function readLocalCommits(repoPath, me, since, baseUrl) {
       html_url: url
     });
   }
-
   return commits;
 }
 
@@ -253,7 +251,8 @@ app.get(["/", "/jdt"], async (req, res) => {
 
     let myEntries = [];
     let commitStats = {
-      fromGit: 0,
+      fromUser: 0,
+      withMetadata: 0,
       afterExclusions: 0,
       manualEntries: 0,
       total: 0
@@ -261,8 +260,9 @@ app.get(["/", "/jdt"], async (req, res) => {
 
     if (currentRepoPath) {
       const raw = await readLocalCommits(currentRepoPath, meAuthors, journalStartDate, remoteBaseUrl);
-      myEntries = raw.map(groom).filter((c) => c.duration > 0);
-      commitStats.fromGit = myEntries.length;
+      commitStats.fromUser = raw.length;
+      myEntries = await raw.map(groom).filter((c) => c.duration > 0);
+      commitStats.withMetadata = myEntries.length;
     }
 
     const exc = currentProject.exceptions || [];

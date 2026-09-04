@@ -3,7 +3,8 @@
     <h2>Statistiques</h2>
     <% if (owner && repo) { %>
     <p style="margin: 0.5rem 0; font-size: 0.9em;">
-      • Commits lus depuis le dépôt local : <strong><%= commitStats.fromGit %></strong><br>
+      • Commits de l'utilisateur lus depuis le dépôt local : <strong><%= commitStats.fromUser %></strong><br>
+      • Commits avec métadonnées : <strong><%= commitStats.withMetadata %></strong><br>
       • Après exclusions : <strong><%= commitStats.afterExclusions %></strong><br>
       • Entrées manuelles : <strong><%= commitStats.manualEntries %></strong><br>
       <br>
