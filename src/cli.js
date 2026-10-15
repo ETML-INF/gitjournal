@@ -13,7 +13,8 @@ const HELP = `Usage: gitjournal [options]
 
   --repo <dossier>      Dépôt git à analyser (défaut : dossier courant)
   --gitj <fichier>      Fichier .gitj (défaut : premier *.gitj à la racine du dépôt, sinon aucun filtre)
-  --output <fichier>    Fichier Markdown à écrire, "-" pour la sortie standard (défaut : journal.md)
+  --output <fichier>    Fichier Markdown à écrire, "-" pour la sortie standard
+                        (défaut : nom du .gitj avec l'extension .md, ou journal.md sans .gitj)
   --timezone <tz>       Fuseau horaire pour le regroupement par jour (défaut : Europe/Zurich)
   --no-issues           Ne pas lire les commentaires d'issues GitHub
   --help                Afficher cette aide
@@ -30,7 +31,7 @@ async function main() {
     options: {
       repo: { type: "string", default: "." },
       gitj: { type: "string" },
-      output: { type: "string", default: "journal.md" },
+      output: { type: "string" },
       timezone: { type: "string", default: "Europe/Zurich" },
       "no-issues": { type: "boolean", default: false },
       help: { type: "boolean", default: false }
@@ -58,18 +59,25 @@ async function main() {
     return;
   }
 
+  // Par défaut, le journal porte le nom du .gitj (à côté de lui) : projet.gitj → projet.md
+  const output = values.output ?? (gitjPath ? path.relative(repoPath, gitjPath).replace(/\.gitj$/i, ".md") : "journal.md");
+
   const markdown = renderMarkdown(entries, {
     title: project.projectName || repo || path.basename(repoPath),
     timeZone: values.timezone,
     version: VERSION
   });
 
-  if (values.output === "-") {
+  if (output === "-") {
     process.stdout.write(markdown);
   } else {
-    await fs.writeFile(path.resolve(repoPath, values.output), markdown, "utf-8");
+    await fs.writeFile(path.resolve(repoPath, output), markdown, "utf-8");
+    // Dans GitHub Actions, transmet le chemin du journal à l'étape de commit
+    if (process.env.GITHUB_OUTPUT) {
+      await fs.appendFile(process.env.GITHUB_OUTPUT, `journal-file=${output.split(path.sep).join("/")}\n`);
+    }
     console.error(
-      `${values.output} : ${stats.total} entrées (${stats.withMetadata} commits, ${stats.issueComments} commentaires d'issues, ${stats.manualEntries} manuelles)` +
+      `${output} : ${stats.total} entrées (${stats.withMetadata} commits, ${stats.issueComments} commentaires d'issues, ${stats.manualEntries} manuelles)` +
         (gitjPath ? ` — configuration ${path.basename(gitjPath)}` : "")
     );
   }
