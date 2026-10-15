@@ -99,8 +99,12 @@ export function groom(commit) {
     // Metadata in title - strip it
     name = stripMetadata(lines[0]);
   } else if (metaLineIndex > 0) {
-    // Metadata on another line - remove that line from description
-    descLines = lines.slice(1).filter((_, i) => i !== metaLineIndex - 1);
+    // Metadata on another line - strip it, and drop the line only if nothing else remains
+    const rest = stripMetadata(lines[metaLineIndex]);
+    descLines = lines
+      .slice(1)
+      .map((l, i) => (i === metaLineIndex - 1 ? rest : l))
+      .filter((l) => l !== "");
   }
 
   return {
@@ -112,5 +116,48 @@ export function groom(commit) {
     status,
     author: commit.author?.login || commit.commit?.author?.name || "?",
     url: commit.html_url
+  };
+}
+
+// A metadata bracket in Markdown text: not a checkbox ([ ], [x]) and not a link ([text](url))
+const MD_META_BRACKET = /\[(?![ xX]?\])[^[\]\n]*\](?!\()/;
+// Run of adjacent metadata brackets, e.g. [2h30 done] or [2][30][done]
+const MD_META_RUN = new RegExp(`(?:${MD_META_BRACKET.source}[ \t]*)+`, "g");
+
+// Find metadata in Markdown text (issue comments).
+// Stricter than commit parsing: the run must contain a bracket starting with a number,
+// so links, checkboxes and references like [WIP] alone are left untouched.
+export function findMarkdownMetadata(text) {
+  const lines = String(text || "").split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    for (const m of lines[i].matchAll(MD_META_RUN)) {
+      const run = m[0];
+      if (!/\[\s*\d/.test(run)) continue;
+      const { duration, status } = parseMetadata(run);
+      if (duration <= 0 && !status) continue;
+      const stripped = (lines[i].slice(0, m.index) + " " + lines[i].slice(m.index + run.length)).replace(/\s+/g, " ").trim();
+      lines[i] = stripped;
+      const remaining = lines.filter((l, j) => j !== i || l !== "");
+      return { duration, status, text: remaining.join("\n").trim() };
+    }
+  }
+  return { duration: 0, status: "", text: String(text || "").trim() };
+}
+
+// Groom an issue comment (GitHub REST API objects) into a journal entry
+export function groomIssueComment(comment, issue) {
+  const { duration, status, text } = findMarkdownMetadata(comment.body);
+  const number = issue?.number ?? Number(String(comment.issue_url || "").split("/").pop());
+  return {
+    commentId: comment.id,
+    source: issue?.pull_request ? "pr" : "issue",
+    issueNumber: number,
+    name: `#${number} ${issue?.title || ""}`.trim(),
+    description: text,
+    date: comment.created_at,
+    duration,
+    status,
+    author: comment.user?.login || "?",
+    url: comment.html_url
   };
 }

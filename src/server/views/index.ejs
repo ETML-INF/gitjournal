@@ -66,7 +66,7 @@
   </div>
   <div class="no-print" style="color: #ccc; font-size: 0.75rem; font-style: italic">GitJournal v<%= appVersion %></div>
 
-  <%- include('_editEntry') %> <%- include('_helpModal') %> <%- include('_statsModal') %>
+  <%- include('_editEntry') %> <%- include('_helpModal') %> <%- include('_statsModal') %> <%- include('_issuesWarning') %>
 </main>
 <script>
   const EDITABLE_FIELDS = <%- JSON.stringify(columns.filter(c => c.field).map(c => c.field)) %>;
@@ -108,7 +108,7 @@
     tr.addEventListener("click", (e) => {
       if (e.target.tagName === "A" || e.target.closest("a")) return;
       const row = e.currentTarget;
-      if (!row.dataset.date) return;
+      if (!row.dataset.date || row.dataset.readonly) return;
 
       e.preventDefault();
       document.getElementById("heaInputForm").innerText = "Modification d'une entrée";
@@ -209,11 +209,26 @@
     if (e.target === statsOverlay) statsOverlay.classList.remove("active");
   };
 
+  // Avertissement si les issues n'ont pas pu être lues, une seule fois par message et par session
+  // (le journal se recharge après chaque modification)
+  const issuesWarningOverlay = document.getElementById("issuesWarningOverlay");
+  if (issuesWarningOverlay) {
+    const warningKey = "issuesWarning:" + issuesWarningOverlay.querySelector("p").textContent;
+    let alreadyShown = false;
+    try {
+      alreadyShown = sessionStorage.getItem(warningKey) === "1";
+      sessionStorage.setItem(warningKey, "1");
+    } catch {}
+    if (!alreadyShown) issuesWarningOverlay.classList.add("active");
+    document.getElementById("issuesWarningOk").onclick = () => issuesWarningOverlay.classList.remove("active");
+  }
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       overlay.classList.remove("active");
       helpOverlay.classList.remove("active");
       statsOverlay.classList.remove("active");
+      issuesWarningOverlay?.classList.remove("active");
     }
   });
 </script>

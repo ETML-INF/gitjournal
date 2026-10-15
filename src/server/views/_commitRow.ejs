@@ -9,11 +9,14 @@
   data-description="<%= c.description ?? ''%>"
   data-duration="<%= c.duration ?? 0%>"
   data-entry="<%= JSON.stringify(c.editableValues ?? {}) %>"
+  <% if (c.commentId) { %>data-readonly="true" title="Commentaire d'issue : à modifier sur GitHub"<% } %>
 >
   <% c.cells.forEach(cell => { %>
-  <td<% if (cell.column.format === 'duration') { %> style="width: 70px"<% } %>><% if (cell.column.format === 'date') { %><%= new Date(cell.value).toLocaleString('fr-CH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) %><% } else if (cell.column.format === 'duration') { %><%= Math.floor(Number(cell.value||0)/60) %>h&nbsp;<%= Number(cell.value||0)%60 %>m<% } else if (cell.column.format === 'badge') { %><span class="badge"><%= cell.value %></span><% } else if (cell.column.field === 'description') { %><span style="white-space: pre-wrap"><%= cell.value || '' %></span><% } else { %><%= cell.value %><% } %></td>
+  <td<% if (cell.column.format === 'duration') { %> style="width: 70px"<% } %>><% if (cell.column.format === 'date') { %><%= new Date(cell.value).toLocaleString('fr-CH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) %><% } else if (cell.column.format === 'duration') { %><%= Math.floor(Number(cell.value||0)/60) %>h&nbsp;<%= Number(cell.value||0)%60 %>m<% } else if (cell.column.format === 'badge') { %><span class="badge"><%= cell.value %></span><% } else if (cell.condensed) { %><span style="white-space: pre-wrap"><% cell.condensed.lines.forEach((segs, i) => { %><% if (i) { %>
+<% } %><% segs.forEach((seg, j) => { %><%= j ? ' ' : '' %><% if (seg.tags) { %><em>(balises)</em><% } else { %><%= seg.text %><% } %><% }) %><% }) %><% if (cell.condensed.more) { %>
+<em><% if (c.url) { %><a href="<%= c.url %>" target="_blank" rel="noopener noreferrer"><%= cell.condensed.more %></a><% } else { %><%= cell.condensed.more %><% } %></em><% } %></span><% } else { %><%= cell.value %><% } %></td>
   <% }) %>
-  <% if (c.sha) { %>
+  <% if (c.sha || c.commentId) { %>
   <td
     style="border: none"
     class="<%= c.patch ? 'patchedcommit' : '' %> no-print"

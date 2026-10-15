@@ -1,12 +1,12 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { execFile } from "child_process";
-import { promisify } from "util";
 import expressLayouts from "express-ejs-layouts";
 import crypto from "crypto";
 import { VERSION as APP_VERSION } from "../version.js";
-import { groom } from "./lib/commit-parser.js";
+import { collectEntries } from "./lib/journal-generator.js";
+import { resolveGithubToken } from "./lib/issue-reader.js";
+import { condenseDescription } from "./lib/description-filter.js";
 
 export function normalizeMeInput(me) {
   if (Array.isArray(me)) return me.map((m) => String(m).trim()).filter(Boolean);
@@ -19,7 +19,6 @@ export function normalizeMeInput(me) {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const execFileAsync = promisify(execFile);
 
 const app = express();
 
@@ -54,95 +53,16 @@ export function onProjectChange(callback) {
   onProjectChangeCallback = callback;
 }
 
-function parseRepoUrl(repoUrl) {
-  if (!repoUrl) return {};
-  const m = repoUrl.match(/github\.com\/([^/]+)\/([^/#?]+)/i);
-  if (!m) return {};
-  return { owner: m[1], repo: m[2] };
+// Fournisseur du token GitHub des préférences (injecté par main.js)
+let tokenProvider = async () => null;
+
+export function setTokenProvider(provider) {
+  tokenProvider = provider;
 }
 
-async function getRemoteBaseUrl(repoPath) {
-  try {
-    const { stdout } = await execFileAsync("git", ["-C", repoPath, "remote", "get-url", "origin"], { timeout: 5000 });
-    const remote = stdout.trim();
-    // SSH → HTTPS : git@github.com:user/repo.git → https://github.com/user/repo
-    const sshMatch = remote.match(/git@([^:]+):([^/]+)\/(.+?)(?:\.git)?$/);
-    if (sshMatch) return `https://${sshMatch[1]}/${sshMatch[2]}/${sshMatch[3]}`;
-    return remote.replace(/\.git$/, "").replace(/\/+$/, "");
-  } catch {
-    return "";
-  }
-}
-
-/**
- * Lit les commits depuis le dépôt git local via `git log`.
- * Filtre par auteur (--author=me) et par date de début (--after=since).
- * Parcourt toutes les branches (--all) et déduplique par SHA.
- */
-async function readLocalCommits(repoPath, me, since, baseUrl) {
-  // Séparateurs qui n'apparaissent pas dans les messages de commit
-  const FIELD_SEP = "\x1e"; // ASCII 30
-  const COMMIT_SEP = "\x1d"; // ASCII 29
-
-  // %B = message complet (sujet + corps)
-  const fmt = `%H${FIELD_SEP}%an${FIELD_SEP}%ad${FIELD_SEP}%B${COMMIT_SEP}`;
-
-  const authors = Array.isArray(me) ? me : [me];
-  const args = [
-    "-C",
-    repoPath,
-    "log",
-    "--all",
-    ...authors.map((a) => `--author=${a}`),
-    "--date=iso-strict",
-    `--format=format:${fmt}`
-  ];
-
-  if (since) args.push(`--after=${since}`);
-
-  let stdout;
-  try {
-    ({ stdout } = await execFileAsync("git", args, { maxBuffer: 50 * 1024 * 1024 }));
-  } catch (e) {
-    return []; // Repo vide ou aucun commit encore
-  }
-  if (!stdout.trim()) return [];
-
-  baseUrl = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-  const seenShas = new Set();
-  const commits = [];
-
-  for (const record of stdout.split(COMMIT_SEP)) {
-    const trimmed = record.trim();
-    if (!trimmed) continue;
-
-    const parts = trimmed.split(FIELD_SEP);
-    if (parts.length < 4) continue;
-
-    const sha = parts[0].trim();
-    const authorName = parts[1].trim();
-    const date = parts[2].trim();
-    // Le message est tout ce qui suit (réassemblé au cas où il contiendrait FIELD_SEP)
-    const message = parts.slice(3).join(FIELD_SEP).trim();
-
-    if (!sha || sha.length < 7) continue;
-    if (seenShas.has(sha)) continue;
-    seenShas.add(sha);
-
-    const url = baseUrl ? `${baseUrl}/commit/${sha}` : "";
-
-    // Construit un objet compatible avec groom()
-    commits.push({
-      sha,
-      commit: {
-        message,
-        author: { date, name: authorName }
-      },
-      author: { login: authorName },
-      html_url: url
-    });
-  }
-  return commits;
+// Token des préférences en priorité, sinon GH_TOKEN / GITHUB_TOKEN / gh auth token
+async function githubToken() {
+  return (await tokenProvider()) || (await resolveGithubToken());
 }
 
 function totalDuration(commits) {
@@ -237,9 +157,6 @@ app.get(["/", "/jdt"], async (req, res) => {
 
     const { projectName, me: meRaw, journalStartDate, columns } = currentProject;
     const me = Array.isArray(meRaw) ? meRaw.join(" / ") : meRaw;
-    const meAuthors = Array.isArray(meRaw) ? meRaw : [meRaw];
-    const remoteBaseUrl = currentRepoPath ? await getRemoteBaseUrl(currentRepoPath) : "";
-    const { owner, repo } = parseRepoUrl(remoteBaseUrl);
 
     const since = journalStartDate
       ? new Intl.DateTimeFormat("fr-FR", {
@@ -249,44 +166,30 @@ app.get(["/", "/jdt"], async (req, res) => {
         }).format(new Date(journalStartDate))
       : null;
 
-    let myEntries = [];
-    let commitStats = {
-      fromUser: 0,
-      withMetadata: 0,
-      afterExclusions: 0,
-      manualEntries: 0,
-      total: 0
-    };
-
-    if (currentRepoPath) {
-      const raw = await readLocalCommits(currentRepoPath, meAuthors, journalStartDate, remoteBaseUrl);
-      commitStats.fromUser = raw.length;
-      myEntries = await raw.map(groom).filter((c) => c.duration > 0);
-      commitStats.withMetadata = myEntries.length;
-    }
-
-    const exc = currentProject.exceptions || [];
-
-    const excludedShas = new Set(exc.filter((e) => e.excluded === true).map((e) => (e.sha || "").toLowerCase().trim()));
-    const notExcluded = myEntries.filter((e) => !excludedShas.has((e.sha || "").toLowerCase().trim()));
-    commitStats.afterExclusions = notExcluded.length;
-
-    const keyOf = (x) => (x.sha || x.id || "").toLowerCase().trim();
-    const excByKey = new Map(exc.map((x) => [keyOf(x), x]));
-    const patched = notExcluded.map((e) => {
-      const repl = excByKey.get(keyOf(e));
-      if (repl && !repl.excluded) return repl;
-      return e;
+    const includeIssues = currentProject.includeIssues === true;
+    const {
+      entries,
+      stats: commitStats,
+      owner,
+      repo
+    } = await collectEntries({
+      project: currentProject,
+      repoPath: currentRepoPath,
+      includeIssues,
+      token: includeIssues ? await githubToken() : ""
     });
+    if (commitStats.issuesError) console.warn("Commentaires d'issues non lus:", commitStats.issuesError);
 
-    const manualEntries = exc.filter((e) => e.type == "commitless");
-    commitStats.manualEntries = manualEntries.length;
-    const allEntriesReady = patched.concat(manualEntries).map((e) => ({
+    const allEntriesReady = entries.map((e) => ({
       ...e,
       editableValues: buildEditableValues(e),
-      cells: columns.map((col) => ({ column: col, value: extractColumnValue(e, col) }))
+      cells: columns.map((col) => {
+        const value = extractColumnValue(e, col);
+        // La description affichée est condensée ; la valeur complète reste dans le formulaire d'édition
+        const condensed = col.field === "description" ? condenseDescription(value, e.source) : null;
+        return { column: col, value, condensed };
+      })
     }));
-    commitStats.total = allEntriesReady.length;
 
     const groups = groupByDay(allEntriesReady);
     const totals = totalDuration(allEntriesReady);

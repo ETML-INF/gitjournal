@@ -1,0 +1,34 @@
+# Exemple de workflow à copier dans .github/workflows/journal.yml du dépôt à journaliser.
+# Le journal est toujours écrit sur la branche par défaut (main), quelle que soit la branche poussée.
+name: Journal de travail
+
+on:
+  push: # toutes les branches
+  issue_comment:
+    types: [created, edited, deleted]
+  issues:
+    types: [opened, edited, closed, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+# Une seule génération à la fois, sans annuler celle en cours
+concurrency:
+  group: gitjournal
+  cancel-in-progress: false
+
+jobs:
+  journal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0 # historique complet de toutes les branches
+
+      - uses: ETML-INF/gitjournal@main
+        with:
+          output: journal.md

@@ -5,6 +5,12 @@
     <p style="margin: 0.5rem 0; font-size: 0.9em;">
       • Commits de l'utilisateur lus depuis le dépôt local : <strong><%= commitStats.fromUser %></strong><br>
       • Commits avec métadonnées : <strong><%= commitStats.withMetadata %></strong><br>
+      <% if (commitStats.issueComments || commitStats.issuesError) { %>
+      • Commentaires d'issues : <strong><%= commitStats.issueComments %></strong><br>
+      <% } %>
+      <% if (commitStats.issuesError) { %>
+      • <span style="color: #c00">Issues non lues.</span> <%= commitStats.issuesError %><br>
+      <% } %>
       • Après exclusions : <strong><%= commitStats.afterExclusions %></strong><br>
       • Entrées manuelles : <strong><%= commitStats.manualEntries %></strong><br>
       <br>

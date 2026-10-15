@@ -1,8 +1,20 @@
 import { app, BrowserWindow, Menu, dialog, shell, ipcMain } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
-import { app as expressApp, setProjectData, onProjectChange, normalizeMeInput } from "./server/server.js";
-import { initSettingsPath, getLastOpenedFile, setLastOpenedFile } from "./server/lib/settings-manager.js";
+import {
+  app as expressApp,
+  setProjectData,
+  onProjectChange,
+  setTokenProvider,
+  normalizeMeInput
+} from "./server/server.js";
+import {
+  initSettingsPath,
+  getLastOpenedFile,
+  setLastOpenedFile,
+  getGithubToken,
+  setGithubToken
+} from "./server/lib/settings-manager.js";
 import { loadProject, saveProject, createNewProject } from "./server/lib/gitj-manager.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -373,6 +385,20 @@ function setupIpcHandlers() {
   ipcMain.handle("open-external", async (event, url) => {
     await shell.openExternal(url);
   });
+
+  ipcMain.handle("get-github-token", async () => {
+    return await getGithubToken();
+  });
+
+  ipcMain.handle("set-github-token", async (event, token) => {
+    await setGithubToken(token || null);
+    // Recharger le journal pour lire les issues avec le nouveau token,
+    // en réautorisant l'avertissement d'erreur d'issues
+    if (mainWindow) {
+      await mainWindow.webContents.executeJavaScript("try { sessionStorage.clear() } catch {}");
+      mainWindow.reload();
+    }
+  });
 }
 
 // === SERVEUR EXPRESS ===
@@ -603,6 +629,7 @@ app.on("ready", async () => {
   try {
     // Initialiser le chemin des settings
     initSettingsPath();
+    setTokenProvider(getGithubToken);
 
     // Déterminer quel fichier ouvrir
     let fileToOpen = fileToOpenAtStartup; // Priorité au fichier passé en argument

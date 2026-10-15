@@ -1,0 +1,69 @@
+name: GitJournal
+description: Génère un journal de travail Markdown à partir des commits (toutes branches) et des commentaires d'issues
+author: ETML-INF
+
+inputs:
+  output:
+    description: Fichier Markdown généré, relatif à la racine du dépôt
+    default: journal.md
+  gitj:
+    description: Fichier .gitj à utiliser (défaut : premier *.gitj à la racine, sinon aucun filtre d'auteur)
+    default: ""
+  timezone:
+    description: Fuseau horaire pour le regroupement par jour
+    default: Europe/Zurich
+  issues:
+    description: Inclure les commentaires d'issues et de pull requests
+    default: "true"
+  commit:
+    description: Committer et pousser le journal sur la branche courante
+    default: "true"
+  commit-message:
+    description: Message du commit du journal
+    default: "docs: update work journal"
+  token:
+    description: Token GitHub pour lire les issues
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Générer le journal
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_GITJ: ${{ inputs.gitj }}
+        INPUT_TIMEZONE: ${{ inputs.timezone }}
+        INPUT_ISSUES: ${{ inputs.issues }}
+      run: |
+        args=(--output "$INPUT_OUTPUT" --timezone "$INPUT_TIMEZONE")
+        [ -n "$INPUT_GITJ" ] && args+=(--gitj "$INPUT_GITJ")
+        [ "$INPUT_ISSUES" != "true" ] && args+=(--no-issues)
+        node "$GITHUB_ACTION_PATH/src/cli.js" "${args[@]}"
+
+    - name: Committer le journal
+      if: inputs.commit == 'true'
+      shell: bash
+      env:
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_MESSAGE: ${{ inputs.commit-message }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add "$INPUT_OUTPUT"
+        if git diff --cached --quiet; then
+          echo "Journal inchangé"
+          exit 0
+        fi
+        git commit -m "$INPUT_MESSAGE"
+        branch="$(git rev-parse --abbrev-ref HEAD)"
+        for attempt in 1 2 3; do
+          git push origin "HEAD:$branch" && exit 0
+          git pull --rebase origin "$branch"
+        done
+        exit 1

@@ -106,7 +106,7 @@
           <input type="password" id="tokenInput" placeholder="ghp_..." />
           <div class="toggle-visibility" onclick="toggleTokenVisibility()">👁️ Afficher/masquer</div>
           <p class="help-text">
-            Ce token est utilisé pour accéder à l'API GitHub.
+            Ce token sert à lire les commentaires d'issues (permission « Issues : Read-only »). Laisser vide pour utiliser GH_TOKEN ou GitHub CLI.
             <a href="#" class="help-link" onclick="openTokenHelp(); return false;">Comment créer un token ?</a>
           </p>
         </div>
@@ -131,12 +131,9 @@
         e.preventDefault();
         const token = document.getElementById('tokenInput').value.trim();
 
-        if (token) {
-          await window.electronAPI.setGithubToken(token);
-          window.close();
-        } else {
-          alert('Veuillez entrer un token valide');
-        }
+        // Un champ vide efface le token (retour à GH_TOKEN / GitHub CLI)
+        await window.electronAPI.setGithubToken(token || null);
+        window.close();
       };
 
       // Toggle visibilité du token
@@ -147,7 +144,7 @@
 
       // Ouvrir l'aide pour créer un token
       function openTokenHelp() {
-        window.electronAPI.openExternal('https://github.com/settings/tokens/new?description=GitJournal&scopes=repo');
+        window.electronAPI.openExternal('https://github.com/settings/personal-access-tokens/new');
       }
     </script>
   </body>

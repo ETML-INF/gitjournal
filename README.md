@@ -1,6 +1,8 @@
 # GitJournal
 
-Application Electron pour générer un journal de travail à partir des commits Git locaux.
+Application Electron pour générer un journal de travail à partir des commits Git locaux et des commentaires d'issues GitHub.
+
+Le même moteur est disponible en ligne de commande et comme GitHub Action, pour tenir un `journal.md` à jour automatiquement (voir [Journal automatique avec GitHub Actions](#journal-automatique-avec-github-actions)).
 
 ## Première utilisation
 
@@ -57,6 +59,8 @@ pnpm start
 | `journalStartDate` | non | Date de début, format ISO 8601 |
 | `columns` | oui | Colonnes affichées dans le journal |
 | `exceptions` | oui | Entrées manuelles et modifications de commits |
+| `includeIssues` | non | `true` pour ajouter les commentaires d'issues dans l'application (défaut : `false`) |
+| `githubUsers` | non | Logins GitHub supplémentaires pour filtrer les commentaires d'issues |
 
 > L'application scanne toutes les branches automatiquement (`git log --all`).
 
@@ -115,6 +119,24 @@ Description détaillée...
 | `[90]` | 90 minutes |
 | `[Done]` / `[WIP]` | statut |
 
+### Commentaires d'issues
+
+Les commentaires d'issues et de pull requests suivent le même formalisme que les commits :
+
+```
+[45m done] Tests concluants sur la régulation
+```
+
+Seuls les crochets commençant par un chiffre sont reconnus dans les commentaires, pour ne pas confondre les métadonnées avec les liens `[texte](url)` ou les cases à cocher `- [x]`.
+
+Contrairement aux commits, **tous les commentaires sont inclus**, même sans durée : le journal sert aussi à retrouver ce qui a été discuté.
+
+Les commentaires sont filtrés par auteur : leur login GitHub doit figurer dans `me` ou dans `githubUsers` (sans `.gitj`, tous les auteurs sont pris en compte).
+
+Dans l'application, activer `"includeIssues": true` dans le `.gitj`. Le token GitHub se définit dans **Préférences** (token fine-grained avec la permission *Issues : Read-only*) ; à défaut, il est lu dans `GH_TOKEN` / `GITHUB_TOKEN`, puis via `gh auth token` (GitHub CLI). Un dépôt public fonctionne sans token, dans la limite de 60 requêtes par heure.
+
+Les commentaires ne peuvent pas être modifiés ni exclus dans GitJournal (les exceptions du `.gitj` ne s'appliquent qu'aux commits) : pour corriger un commentaire, le modifier sur GitHub.
+
 ### Ajouter une entrée manuelle
 
 1. Cliquer sur le bouton **+** en bas du tableau
@@ -144,6 +166,37 @@ Le CSV contient une colonne supplémentaire "Tâche (abrégé)" : texte extrait 
 Menu : **Fichier > Enregistrer** (`Cmd+S` / `Ctrl+S`)
 
 Les modifications sont aussi sauvegardées automatiquement après chaque ajout ou modification.
+
+## Journal automatique avec GitHub Actions
+
+GitJournal peut générer un `journal.md` dans le dépôt à journaliser, à chaque push (toutes branches), à chaque commentaire ou modification d'issue, ou manuellement.
+
+Copier [doc/journal-workflow.yml](doc/journal-workflow.yml) dans `.github/workflows/journal.yml` du dépôt à journaliser. Le journal :
+
+- rassemble les commits de **toutes les branches** (dédupliqués par SHA, avec le nom de la branche) et les commentaires d'issues ;
+- est regroupé par jour (fuseau `Europe/Zurich`), du plus récent au plus ancien ;
+- est toujours écrit sur la branche par défaut, même quand le push concerne `develop` ;
+- utilise le `.gitj` à la racine du dépôt s'il existe (filtre d'auteur, date de début, exclusions de commits, entrées manuelles).
+
+Le commit du journal est fait avec `GITHUB_TOKEN`, il ne redéclenche donc pas le workflow.
+
+Paramètres de l'action (`with:`) :
+
+| Paramètre | Défaut | Description |
+|---|---|---|
+| `output` | `journal.md` | Fichier généré |
+| `gitj` | premier `*.gitj` à la racine | Configuration à utiliser |
+| `timezone` | `Europe/Zurich` | Fuseau pour le regroupement par jour |
+| `issues` | `true` | Inclure les commentaires d'issues |
+| `commit` | `true` | Committer et pousser le journal |
+| `commit-message` | `docs: update work journal` | Message du commit |
+
+### En ligne de commande
+
+```bash
+node src/cli.js --repo ../mon-depot --output - # affiche le journal
+node src/cli.js --help
+```
 
 ## Raccourcis clavier
 
@@ -189,6 +242,7 @@ Les artefacts sont générés dans `src/dist/`.
 ```
 src/
 ├── main.js                 # Main process Electron
+├── cli.js                  # Génération Markdown en ligne de commande (GitHub Action)
 ├── preload.js              # Bridge IPC sécurisé
 ├── version.js              # Numéro de version
 ├── package.json
@@ -196,7 +250,10 @@ src/
 └── server/
     ├── server.js           # Serveur Express interne
     ├── lib/
-    │   ├── commit-parser.js    # Parsing des métadonnées de commits
+    │   ├── commit-parser.js    # Parsing des métadonnées (commits et commentaires)
+    │   ├── issue-reader.js     # Lecture des commentaires d'issues (API GitHub)
+    │   ├── journal-generator.js # Collecte des entrées (commits, issues, exceptions)
+    │   ├── markdown-export.js  # Rendu du journal Markdown
     │   ├── gitj-manager.js     # Lecture/écriture des fichiers .gitj
     │   └── settings-manager.js # Persistance des préférences
     └── views/              # Templates EJS

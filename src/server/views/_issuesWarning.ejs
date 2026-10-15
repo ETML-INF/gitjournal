@@ -1,0 +1,14 @@
+<% if (commitStats.issuesError) { %>
+<div class="overlay" id="issuesWarningOverlay">
+  <div class="modal" style="max-width: 450px">
+    <h2>⚠️ Commentaires d'issues non chargés</h2>
+    <p><%= commitStats.issuesError %></p>
+    <p style="font-size: 0.9em">
+      Le journal n'affiche que les commits. Vérifiez le token GitHub dans le menu <strong>Préférences</strong>.
+    </p>
+    <div class="actions">
+      <button type="button" id="issuesWarningOk">OK</button>
+    </div>
+  </div>
+</div>
+<% } %>
