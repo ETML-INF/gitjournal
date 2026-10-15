@@ -169,13 +169,13 @@ Les modifications sont aussi sauvegardées automatiquement après chaque ajout o
 
 ## Journal automatique avec GitHub Actions
 
-GitJournal peut générer un `journal.md` dans le dépôt à journaliser, à chaque push (toutes branches), à chaque commentaire ou modification d'issue, ou manuellement.
+GitJournal peut générer un journal Markdown dans le dépôt à journaliser, à chaque push (toutes branches), à chaque commentaire ou modification d'issue, ou manuellement.
 
 Copier [doc/journal-workflow.yml](doc/journal-workflow.yml) dans `.github/workflows/journal.yml` du dépôt à journaliser. Le journal :
 
 - rassemble les commits de **toutes les branches** (dédupliqués par SHA, avec le nom de la branche) et les commentaires d'issues ;
 - est regroupé par jour (fuseau `Europe/Zurich`), du plus récent au plus ancien ;
-- est toujours écrit sur la branche par défaut, même quand le push concerne `develop` ;
+- est écrit sur la branche par défaut, même quand le push concerne `develop`. Si `main` exige des pull requests, ajouter **GitHub Actions** aux exceptions (*Bypass list*) de la règle, ou écrire le journal sur une branche dédiée avec `branch: journal` ;
 - utilise le `.gitj` à la racine du dépôt s'il existe (filtre d'auteur, date de début, exclusions de commits, entrées manuelles).
 
 Le commit du journal est fait avec `GITHUB_TOKEN`, il ne redéclenche donc pas le workflow.
@@ -184,11 +184,12 @@ Paramètres de l'action (`with:`) :
 
 | Paramètre | Défaut | Description |
 |---|---|---|
-| `output` | `journal.md` | Fichier généré |
+| `output` | nom du `.gitj` en `.md` (`journal.md` sans `.gitj`) | Fichier généré |
 | `gitj` | premier `*.gitj` à la racine | Configuration à utiliser |
 | `timezone` | `Europe/Zurich` | Fuseau pour le regroupement par jour |
 | `issues` | `true` | Inclure les commentaires d'issues |
 | `commit` | `true` | Committer et pousser le journal |
+| `branch` | branche extraite | Branche où committer le journal (créée si absente) |
 | `commit-message` | `docs: update work journal` | Message du commit |
 
 ### En ligne de commande

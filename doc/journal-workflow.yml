@@ -1,5 +1,7 @@
 # Exemple de workflow à copier dans .github/workflows/journal.yml du dépôt à journaliser.
-# Le journal est toujours écrit sur la branche par défaut (main), quelle que soit la branche poussée.
+# Le journal est écrit sur la branche par défaut (main), quelle que soit la branche poussée.
+# Si main exige des pull requests, ajouter GitHub Actions aux exceptions de la règle,
+# ou écrire le journal sur une branche dédiée avec "branch: journal".
 name: Journal de travail
 
 on:
@@ -24,11 +26,10 @@ jobs:
   journal:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0 # historique complet de toutes les branches
 
+      # Le journal porte le nom du .gitj à la racine (projet.gitj → projet.md), ou journal.md sans .gitj
       - uses: ETML-INF/gitjournal@main
-        with:
-          output: journal.md

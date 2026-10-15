@@ -21,6 +21,12 @@ const HELP = `Usage: gitjournal [options]
 
 Le token GitHub est lu dans GH_TOKEN ou GITHUB_TOKEN, sinon via "gh auth token".`;
 
+// Affiche une erreur ; dans GitHub Actions, elle apparaît aussi en annotation dans le résumé du workflow
+function fail(message) {
+  console.error(process.env.GITHUB_ACTIONS ? `::error title=GitJournal::${message.replace(/\s*\n\s*/g, " ")}` : message);
+  process.exitCode = 1;
+}
+
 async function findGitj(repoPath) {
   const files = (await fs.readdir(repoPath)).filter((f) => f.endsWith(".gitj")).sort();
   return files.length ? path.join(repoPath, files[0]) : null;
@@ -44,7 +50,14 @@ async function main() {
 
   const repoPath = path.resolve(values.repo);
   const gitjPath = values.gitj ? path.resolve(repoPath, values.gitj) : await findGitj(repoPath);
-  const project = gitjPath ? await loadProject(gitjPath) : { projectName: "", me: "", journalStartDate: null, exceptions: [] };
+  let project = { projectName: "", me: "", journalStartDate: null, exceptions: [] };
+  if (gitjPath) {
+    try {
+      project = await loadProject(gitjPath);
+    } catch (e) {
+      return fail(`Fichier ${path.basename(gitjPath)} invalide : ${e.message}`);
+    }
+  }
 
   const includeIssues = !values["no-issues"];
   const { entries, stats, repo } = await collectEntries({
@@ -54,9 +67,7 @@ async function main() {
     token: includeIssues ? await resolveGithubToken() : ""
   });
   if (stats.issuesError) {
-    console.error(`Erreur lors de la lecture des issues : ${stats.issuesError}`);
-    process.exitCode = 1;
-    return;
+    return fail(`Lecture des issues impossible : ${stats.issuesError}`);
   }
 
   // Par défaut, le journal porte le nom du .gitj (à côté de lui) : projet.gitj → projet.md
@@ -83,7 +94,4 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e.message);
-  process.exitCode = 1;
-});
+main().catch((e) => fail(e.message));

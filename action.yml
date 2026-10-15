@@ -18,6 +18,9 @@ inputs:
   commit:
     description: "Committer et pousser le journal sur la branche courante"
     default: "true"
+  branch:
+    description: "Branche sur laquelle committer le journal (créée si elle n'existe pas, sans historique). Par défaut : la branche extraite"
+    default: ""
   commit-message:
     description: "Message du commit du journal"
     default: "docs: update work journal"
@@ -33,9 +36,9 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v5
       with:
-        node-version: 20
+        node-version: 24
 
     - name: "Générer le journal"
       id: generate
@@ -59,18 +62,38 @@ runs:
       env:
         JOURNAL_FILE: "${{ steps.generate.outputs.journal-file }}"
         INPUT_MESSAGE: "${{ inputs.commit-message }}"
+        INPUT_BRANCH: "${{ inputs.branch }}"
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        branch="${INPUT_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
+
+        # Branche dédiée : on y transporte le journal généré depuis la branche extraite
+        if [ "$branch" != "$(git rev-parse --abbrev-ref HEAD)" ]; then
+          saved="$(mktemp)"
+          cp "$JOURNAL_FILE" "$saved"
+          git reset -q --hard
+          git clean -fdq
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            git fetch -q origin "$branch"
+            git switch -q -C "$branch" FETCH_HEAD
+          else
+            echo "Création de la branche $branch"
+            git switch -q --orphan "$branch"
+          fi
+          mkdir -p "$(dirname "$JOURNAL_FILE")"
+          cp "$saved" "$JOURNAL_FILE"
+        fi
+
         git add "$JOURNAL_FILE"
         if git diff --cached --quiet; then
           echo "Journal inchangé"
           exit 0
         fi
         git commit -m "$INPUT_MESSAGE"
-        branch="$(git rev-parse --abbrev-ref HEAD)"
         for attempt in 1 2 3; do
           git push origin "HEAD:$branch" && exit 0
-          git pull --rebase origin "$branch"
+          git pull --rebase origin "$branch" || break
         done
+        echo "::error title=GitJournal::Impossible de pousser $JOURNAL_FILE sur $branch. La branche est probablement protégée (pull request obligatoire) : utiliser une branche dédiée (branch: journal) ou autoriser GitHub Actions à contourner la règle."
         exit 1
