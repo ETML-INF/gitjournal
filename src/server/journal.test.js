@@ -1,7 +1,11 @@
 import { test, describe } from "node:test";
 import assert from "node:assert";
 import { findMarkdownMetadata, groomIssueComment, groom } from "./lib/commit-parser.js";
-import { applyExceptions } from "./lib/journal-generator.js";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { applyExceptions, readGitUsers } from "./lib/journal-generator.js";
 import { renderMarkdown, escapeCell } from "./lib/markdown-export.js";
 import { explainGithubError } from "./lib/issue-reader.js";
 import { condenseDescription } from "./lib/description-filter.js";
@@ -68,6 +72,41 @@ describe("groom - text next to metadata on another line", () => {
       html_url: ""
     });
     assert.strictEqual(r.description, "tests unitaires");
+  });
+});
+
+describe("readGitUsers", () => {
+  function commit(repo, name, date) {
+    const env = { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date };
+    execFileSync("git", ["-C", repo, "-c", `user.name=${name}`, "-c", "user.email=a@b.c", "commit", "--allow-empty", "-m", "x"], { env });
+  }
+
+  test("returns distinct sorted authors since the given date, on all branches", async () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), "gitjournal-"));
+    try {
+      execFileSync("git", ["-C", repo, "init", "-q", "-b", "main"]);
+      commit(repo, "Ancien", "2020-01-01T10:00:00Z");
+      commit(repo, "Zoé", "2026-02-01T10:00:00Z");
+      commit(repo, "Alice", "2026-02-02T10:00:00Z");
+      commit(repo, "Zoé", "2026-02-03T10:00:00Z");
+      execFileSync("git", ["-C", repo, "checkout", "-q", "-b", "autre"]);
+      commit(repo, "Bob Martin", "2026-02-04T10:00:00Z");
+      execFileSync("git", ["-C", repo, "checkout", "-q", "main"]);
+
+      assert.deepStrictEqual(await readGitUsers(repo, "2026-01-01"), ["Alice", "Bob Martin", "Zoé"]);
+      assert.deepStrictEqual(await readGitUsers(repo), ["Alice", "Ancien", "Bob Martin", "Zoé"]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  test("returns an empty list outside of a git repository", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gitjournal-"));
+    try {
+      assert.deepStrictEqual(await readGitUsers(dir), []);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

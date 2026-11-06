@@ -34,6 +34,27 @@ function shortRef(ref) {
   return ref.replace(/^refs\/(heads|tags)\//, "").replace(/^refs\/remotes\/[^/]+\//, "");
 }
 
+// Toutes les branches locales et distantes, sans tags ni stash (pour que %S désigne une branche)
+const LOG_ALL_BRANCHES = ["--exclude=refs/tags/*", "--exclude=refs/stash", "--all"];
+
+/**
+ * Liste les noms d'auteurs distincts du `git log`, sur le même périmètre que le journal
+ * (toutes les branches, depuis `since`) mais sans filtre sur l'auteur.
+ */
+export async function readGitUsers(repoPath, since) {
+  const args = ["-C", repoPath, "log", ...LOG_ALL_BRANCHES, "--format=%an"];
+  if (since) args.push(`--after=${since}`);
+
+  let stdout;
+  try {
+    ({ stdout } = await execFileAsync("git", args, { maxBuffer: 50 * 1024 * 1024 }));
+  } catch (e) {
+    return []; // Repo vide ou aucun commit encore
+  }
+  const names = stdout.split("\n").map((n) => n.trim()).filter(Boolean);
+  return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+}
+
 /**
  * Lit les commits depuis le dépôt git local via `git log`.
  * Filtre par auteur (--author=me) et par date de début (--after=since).
@@ -52,10 +73,7 @@ export async function readLocalCommits(repoPath, me, since, baseUrl) {
     "-C",
     repoPath,
     "log",
-    // Toutes les branches locales et distantes, sans tags ni stash (pour que %S désigne une branche)
-    "--exclude=refs/tags/*",
-    "--exclude=refs/stash",
-    "--all",
+    ...LOG_ALL_BRANCHES,
     "--source",
     ...authors.map((a) => `--author=${a}`),
     "--date=iso-strict",
@@ -149,6 +167,7 @@ export async function collectEntries({ project, repoPath, includeIssues = false,
   const { owner, repo } = parseRepoUrl(remoteBaseUrl);
 
   const stats = {
+    gitUsers: [],
     fromUser: 0,
     withMetadata: 0,
     issueComments: 0,
@@ -160,6 +179,7 @@ export async function collectEntries({ project, repoPath, includeIssues = false,
 
   let entries = [];
   if (repoPath) {
+    stats.gitUsers = await readGitUsers(repoPath, journalStartDate);
     const raw = await readLocalCommits(repoPath, meAuthors, journalStartDate, remoteBaseUrl);
     stats.fromUser = raw.length;
     entries = raw

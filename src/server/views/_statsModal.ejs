@@ -22,5 +22,13 @@
       Entrées manuelles : <strong><%= commitStats.manualEntries %></strong>
     </p>
     <% } %>
+    <% if (commitStats.gitUsers.length) { %>
+    <p style="margin: 0.5rem 0 0; font-size: 0.9em;"><strong>Utilisateurs Git rencontrés dans le log :</strong></p>
+    <ul style="margin: 0.25rem 0; font-size: 0.9em;">
+      <% commitStats.gitUsers.forEach((user) => { %>
+      <li><%= user %></li>
+      <% }) %>
+    </ul>
+    <% } %>
   </div>
 </div>
