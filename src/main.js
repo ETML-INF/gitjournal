@@ -221,9 +221,13 @@ function debouncedSave() {
 async function exportToPDF() {
   if (!mainWindow) return;
 
+  const defaultName = currentProjectPath
+    ? path.basename(currentProjectPath, path.extname(currentProjectPath))
+    : `journal-${new Date().toISOString().split("T")[0]}`;
+
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: "Exporter en PDF",
-    defaultPath: `journal-${new Date().toISOString().split("T")[0]}.pdf`,
+    defaultPath: `${defaultName}.pdf`,
     filters: [{ name: "PDF", extensions: ["pdf"] }]
   });
 
@@ -266,9 +270,13 @@ async function exportToPDF() {
 async function exportToCSV() {
   if (!mainWindow) return;
 
+  const defaultName = currentProjectPath
+    ? path.basename(currentProjectPath, path.extname(currentProjectPath))
+    : `journal-${new Date().toISOString().split("T")[0]}`;
+
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: "Exporter en CSV",
-    defaultPath: `journal-${new Date().toISOString().split("T")[0]}.csv`,
+    defaultPath: `${defaultName}.pdf`,
     filters: [{ name: "CSV", extensions: ["csv"] }]
   });
 
